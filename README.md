@@ -28,7 +28,8 @@ docker-compose down
 
 The data can be found in the `/data` folder.
 ```
-├──- labels.csv      Labels for driving trips safety
+├──- labels.csv                Labels for driving trips safety
+├──- data_dictionary.xlsx      Data dictionary to explain fields in dataset
 ```
 
 The dataset source can be found at [kaggle](https://www.kaggle.com/datasets/vancharmlab/grabai).
