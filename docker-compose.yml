@@ -13,12 +13,51 @@ services:
     # volumes:
     #   - ./data/minio:/data
     command: server --console-address ":9090" /data
+  
+  postgres:
+    image: postgres:latest
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  postgres-seed:
+    image: postgres:latest
+    depends_on:
+      - postgres
+    volumes:
+      - ./data:/data  # Mount data & script inside the container
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    entrypoint: ["/bin/bash", "-c", "/data/load_postgres.sh"]
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+    volumes:
+      - ./data/servers.json:/pgadmin4/servers.json
 
   # TODO: Kafka
 
   # TODO: Spark for batch processing
 
-  # TODO: Flask as API server
+  # TODO: FastAPI server
 
 volumes:
   minio_data:
+  postgres_data:
