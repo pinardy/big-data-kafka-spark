@@ -10,6 +10,7 @@
 ```
 ## Getting Started
 
+### Docker
 Ensure that docker is already installed.
 
 Start all services with:
@@ -23,6 +24,13 @@ Stop all services with:
 ```sh
 docker-compose down
 ```
+
+### Services
+
+| Service Name | Description                              | URL (UI)                 | Notes                                     |
+|--------------|------------------------------------------|--------------------------|-------------------------------------------|
+| Postgres     | Database storage for application         | http://localhost:8080    | Login details found in docker-compose.yml |
+| MinIO        | Object storage (S3 compatible)           | http://localhost:9090    |                                           |
 
 ## Data
 
