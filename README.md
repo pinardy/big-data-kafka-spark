@@ -4,7 +4,7 @@
 
 ```
 ├──- docker-compose.yml      Docker compose file to start up all application containers
-🗂️── data                    Store data to be used for application
+🗂️── data                    Store data to be used for application (Would be made avaiable upon startup of MinIO)
 🗂️── consumer                Consumer application code
 🗂️── producer                Producer application code
 ```
@@ -27,10 +27,11 @@ docker-compose down
 
 ### Services
 
-| Service Name | Description                              | URL (UI)                 | Notes                                     |
-|--------------|------------------------------------------|--------------------------|-------------------------------------------|
-| Postgres     | Database storage for application         | http://localhost:8080    | Login details found in docker-compose.yml |
-| MinIO        | Object storage (S3 compatible)           | http://localhost:9090    |                                           |
+| Service Name | Description                      | URL (UI)              | Notes                                                             |
+|--------------|----------------------------------|-----------------------|-------------------------------------------------------------------|
+| Postgres     | Database storage for application | http://localhost:8080 | Login details found in docker-compose.yml                         |
+| MinIO        | Object storage (S3 compatible)   | http://localhost:9090 | Webpage access to view and configurate MinIO                      |
+| MinIO Client | MinIO API calls                  | http://localhost:9000 | No webpage access but used for application to access the content. |
 
 ## Data
 
@@ -38,6 +39,8 @@ The data labels and data dictionary can be found in the `/data` folder.
 ```
 ├──- labels.csv                Labels for driving trips safety
 ├──- data_dictionary.xlsx      Data dictionary to explain fields in dataset
+  ├──- raw                     Contains Raw data used in the application, manual extraction from kaggle required.
+
 ```
 
 The raw dataset source is in CSV format and can be found at [kaggle](https://www.kaggle.com/datasets/vancharmlab/grabai).
