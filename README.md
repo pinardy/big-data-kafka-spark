@@ -4,7 +4,7 @@
 
 ```
 ├──- docker-compose.yml      Docker compose file to start up all application containers
-🗂️── data                    Store data to be used for application
+🗂️── data                    Store data to be used for application (Would be made avaiable upon startup of MinIO)
 🗂️── consumer                Consumer application code
 🗂️── producer                Producer application code
 ```
@@ -38,6 +38,8 @@ The data labels and data dictionary can be found in the `/data` folder.
 ```
 ├──- labels.csv                Labels for driving trips safety
 ├──- data_dictionary.xlsx      Data dictionary to explain fields in dataset
+  ├──- raw                     Contains Raw data used in the application, manual extraction from kaggle required.
+
 ```
 
 The raw dataset source is in CSV format and can be found at [kaggle](https://www.kaggle.com/datasets/vancharmlab/grabai).

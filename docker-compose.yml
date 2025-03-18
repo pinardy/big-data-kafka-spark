@@ -7,13 +7,32 @@ services:
     ports:
       - "9000:9000"  # S3 API
       - "9090:9090"  # Web UI
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    # volumes:
-    #   - ./data/minio:/data
+    env_file:
+      - .env
+    volumes:
+      # Mount data inside the container
+      - minio_data:/data  # Persist data between container restarts
     command: server --console-address ":9090" /data
-  
+
+  minio-client:
+    image: minio/mc
+    # insure that the server container is running before building the client
+    depends_on:
+      - minio
+    volumes:
+      - ./data:/data
+    entrypoint: >
+      /bin/sh -c
+      "until mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      do echo 'Waiting for MinIO to be ready...';
+      sleep 2;
+      done
+      && mc mb --ignore-existing myminio/bigdata
+      && mc cp -r /data/* myminio/bigdata/"
+
+
+
+
   postgres:
     image: postgres:latest
     container_name: postgres_db
@@ -60,4 +79,5 @@ services:
 
 volumes:
   minio_data:
+    driver: local
   postgres_data:
