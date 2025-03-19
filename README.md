@@ -3,10 +3,11 @@
 ## Folder Structure
 
 ```
-├──- docker-compose.yml      Docker compose file to start up all application containers
-🗂️── data                    Store data to be used for application (Would be made avaiable upon startup of MinIO)
-🗂️── consumer                Consumer application code
-🗂️── producer                Producer application code
+├──- docker-compose.yml              Docker compose file to start up all application containers
+├──- docker-compose-storage.yml      Docker compose file to start up all storage containers
+🗂️── data                            Store data to be used for application (Would be made avaiable upon startup of MinIO)
+🗂️── consumer                        Consumer application code
+🗂️── producer                        Producer application code
 ```
 ## Getting Started
 
