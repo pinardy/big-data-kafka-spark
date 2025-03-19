@@ -25,6 +25,23 @@ Stop all services with:
 docker-compose down
 ```
 
+### Python Virtual Environment
+
+1) Create your own virtual environment:
+```sh
+python3 -m venv myenv
+```
+
+2) Activate the virtual environment:
+```sh
+source myenv/bin/activate
+```
+
+3) Install the python packages in the virtual environment:
+```sh
+pip install -r requirements.txt
+```
+
 ### Services
 
 | Service Name | Description                      | URL (UI)              | Notes                                                             |
