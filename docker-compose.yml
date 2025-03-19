@@ -1,79 +1,23 @@
 version: '3.8'
 
 services:
-  minio:
-    image: quay.io/minio/minio:latest
-    container_name: minio
-    ports:
-      - "9000:9000"  # S3 API
-      - "9090:9090"  # Web UI
-    env_file:
-      - .env
-    volumes:
-      # Mount data inside the container
-      - minio_data:/data  # Persist data between container restarts
-    command: server --console-address ":9090" /data
-
-  minio-client:
-    image: minio/mc
-    # insure that the server container is running before building the client
-    depends_on:
-      - minio
-    volumes:
-      - ./data:/data
-    env_file:
-      - .env
-    entrypoint: >
-      /bin/sh -c
-      "until mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
-      do echo 'Waiting for MinIO to be ready...';
-      sleep 2;
-      done
-      && mc mb --ignore-existing myminio/bigdata
-      && mc cp -r /data/* myminio/bigdata/"
-
-
-
-
-  postgres:
-    image: postgres:latest
-    container_name: postgres_db
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
 
-  postgres-seed:
-    image: postgres:latest
+  kafka:
+    image: confluentinc/cp-kafka:latest
     depends_on:
-      - postgres
-    volumes:
-      - ./data:/data  # Mount data & script inside the container
+      - zookeeper
     environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_DB: postgres
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-    entrypoint: ["/bin/bash", "-c", "/data/load_postgres.sh"]
-
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     ports:
-      - "8080:80"
-    depends_on:
-      - postgres
-    volumes:
-      - ./data/servers.json:/pgadmin4/servers.json
-
-  # TODO: Kafka
+      - "9092:9092"
 
   # TODO: Spark for batch processing
 

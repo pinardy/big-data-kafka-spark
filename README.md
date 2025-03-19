@@ -15,14 +15,14 @@ Ensure that docker is already installed.
 
 Start all services with:
 ```sh
-docker-compose up -d
+docker-compose -f docker-compose.yml -f docker-compose-storage.yml up -d
 ```
 
 You can view the started containers on Docker Desktop.
 
 Stop all services with:
 ```sh
-docker-compose down
+docker-compose -f docker-compose.yml -f docker-compose-storage.yml down
 ```
 
 ### Python Virtual Environment
