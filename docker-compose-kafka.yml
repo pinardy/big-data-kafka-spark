@@ -17,9 +17,16 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      # KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://192.168.10.145:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     ports:
       - "9092:9092"
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   kafdrop:
     image: obsidiandynamics/kafdrop:latest
@@ -30,4 +37,4 @@ services:
       KAFKA_BROKERCONNECT: kafka:9092
       JVM_OPTS: "-Xms32M -Xmx64M"
     ports:
-      - "9000:9000"
+      - "9001:9001"
