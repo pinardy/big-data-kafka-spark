@@ -12,18 +12,27 @@
 ## Getting Started
 
 ### Docker
-Ensure that docker is already installed.
+Ensure that docker is already installed. 
+
+You will need to build the `consumer` and `producer` images in the respective folders:
+```sh
+# Run in the consumer folder
+docker build -t consumer .
+
+# Run in the consumer folder
+docker build -t producer .
+```
 
 Start all services with:
 ```sh
-docker-compose -f docker-compose.yml -f docker-compose-storage.yml up -d
+docker-compose -f docker-compose-kafka.yml -f docker-compose-storage.yml -f docker-compose.yml up -d
 ```
 
 You can view the started containers on Docker Desktop.
 
 Stop all services with:
 ```sh
-docker-compose -f docker-compose.yml -f docker-compose-storage.yml down
+docker-compose -f docker-compose-kafka.yml -f docker-compose-storage.yml -f docker-compose.yml down
 ```
 
 ### Python Virtual Environment
