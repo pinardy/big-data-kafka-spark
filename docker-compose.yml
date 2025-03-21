@@ -20,10 +20,57 @@ services:
       - "9092:9092"
 
   # TODO: Spark for batch processing
+  # Spark Master
+  spark-master:
+    image: bitnami/spark:3.1.2
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_HOST=spark-master
+      - SPARK_MASTER_PORT=7077
+      - SPARK_UI_PORT=8080
+      - SPARK_RPC_AUTHENTICATION_ENABLED=false
+      - SPARK_LOCAL_DIRS=/tmp/spark-temp
+    ports:
+      - "8089:8080"    # Spark UI
+      - "7077:7077"    # Spark Master port
+    volumes:
+      - spark-data:/bitnami/spark
+      - ./batch-processing:/scripts
 
+  # Spark Worker
+  spark-worker:
+    image: bitnami/spark:3.1.2
+    container_name: spark-worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_LOCAL_DIRS=/tmp/spark-temp
+      - PYTHONPATH=/opt/bitnami/spark/python
+    depends_on:
+      - spark-master
+    volumes:
+      - spark-data:/bitnami/spark
+
+  # Optionally, add a Spark Job Submission service
+  spark-submit:
+    image: bitnami/spark:3.1.2
+    container_name: spark-submit
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=512m
+      - SPARK_LOCAL_DIRS=/tmp/spark-temp
+      - PYTHONPATH=/opt/bitnami/spark/python
+    entrypoint: ["/bin/bash", "-c", "while true; echo 'sleeping'; do sleep 1000; done"]
+    volumes:
+      - ./batch-processing:/scripts
   # TODO: FastAPI server
 
 volumes:
   minio_data:
     driver: local
   postgres_data:
+  spark-data:

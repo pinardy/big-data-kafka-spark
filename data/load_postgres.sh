@@ -5,6 +5,22 @@ echo "Waiting for PostgreSQL to be ready..."
 until PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c '\q' 2>/dev/null; do
   sleep 2
 done
+echo "Creating raw data table..."
+PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<EOF
+CREATE TABLE IF NOT EXISTS raw_data (
+    bookingID BIGINT,
+    Accuracy FLOAT,
+    Bearing FLOAT,
+    acceleration_x FLOAT,
+    acceleration_y FLOAT,
+    acceleration_z FLOAT,
+    gyro_x FLOAT,
+    gyro_y FLOAT,
+    gyro_z FLOAT,
+    second FLOAT,
+    Speed FLOAT
+);
+EOF
 
 echo "Creating table and loading data into PostgreSQL..."
 PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<EOF
