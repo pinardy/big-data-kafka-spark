@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   minio:
     image: quay.io/minio/minio:latest
@@ -10,13 +8,12 @@ services:
     env_file:
       - .env
     volumes:
-      # Mount data inside the container
       - minio_data:/data  # Persist data between container restarts
     command: server --console-address ":9090" /data
 
   minio-client:
     image: minio/mc
-    # insure that the server container is running before building the client
+    container_name: minio-client
     depends_on:
       - minio
     volumes:
@@ -46,6 +43,7 @@ services:
 
   postgres-seed:
     image: postgres:latest
+    container_name: postgres_seed
     depends_on:
       - postgres
     volumes:
