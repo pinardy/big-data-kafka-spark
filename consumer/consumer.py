@@ -1,5 +1,6 @@
 import os, json
 from kafka import KafkaConsumer
+from postgres_util import get_connection, ingest_raw_data
 
 KAFKA_BROKER = os.environ["KAFKA_BROKER"]
 KAFKA_TOPIC = os.environ["KAFKA_TOPIC"]
@@ -26,11 +27,19 @@ def create_consumer(broker, topic):
 
 def consume_messages(consumer):
     try:
+        # Connect to PostgreSQL database
+        conn, cursor = get_connection()
+
         for message in consumer:
             print(f"Received message: {message.value} from topic: {message.topic}")
+            ingest_raw_data(conn, cursor, message.value)
     except KeyboardInterrupt:
         print("Stopped consuming messages")
     finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
         consumer.close()
 
 

@@ -5,6 +5,11 @@ services:
     environment:
       KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: test
+      POSTGRES_DB: postgres
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
     depends_on:
       kafka:
         condition: service_healthy
@@ -17,11 +22,6 @@ services:
     environment:
       KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: test
-      POSTGRES_DB: postgres
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
 
   # TODO: Spark for batch processing
 
