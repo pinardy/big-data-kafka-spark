@@ -28,14 +28,13 @@ def send_message(producer, topic, message):
 if __name__ == "__main__":
     time.sleep(10) # Start the producer after the consumer
     producer = create_producer(KAFKA_BROKER)
-    messages = [
-        {"id": 1, "name": "Alice", "age": 25},
-        {"id": 2, "name": "Bob", "age": 30},
-        {"id": 3, "name": "Charlie", "age": 35}
-    ]
-    for message in messages:
-        send_message(producer, KAFKA_TOPIC, message)
-        time.sleep(1)
+    
+    with open('sample.json', 'r') as file:
+        messages = json.load(file)
+
+        for message in messages:
+            send_message(producer, KAFKA_TOPIC, message)
+            time.sleep(1)
 
     print("after sending messages")
     producer.flush()  # Ensure all messages are sent before closing
