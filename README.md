@@ -61,6 +61,7 @@ pip install -r requirements.txt
 | MinIO Client | MinIO API calls                         | http://localhost:9000 | No webpage access but used for application to access the content. |
 | Kafdrop      | Kafka UI for checking topics & messages | http://localhost:9001 |                                                                   |
 | Backend      | FastAPI backend to serve API endpoints  | http://localhost:8000 | For displaying telematics data on frontend                        |
+| Frontend     | React frontend                          | http://localhost:3000 | Frontend to display telematics data                               |
 
 ## Data
 
