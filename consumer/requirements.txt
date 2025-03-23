@@ -1,3 +1,4 @@
 kafka-python==2.1.2
 py4j==0.10.9.7
 pyspark==3.5.5
+psycopg2-binary==2.9.10
