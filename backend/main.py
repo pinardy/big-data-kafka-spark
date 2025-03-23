@@ -1,8 +1,17 @@
 import os, psycopg2
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from psycopg2.extras import RealDictCursor
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Frontend origin
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 def get_connection():
     # Connect to PostgreSQL database

@@ -1,12 +1,12 @@
-import React, { Suspense, useEffect } from 'react'
+import React, { Suspense, useEffect, useCallback } from 'react'
 import { HashRouter, Route, Routes } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 
 import { CSpinner, useColorModes } from '@coreui/react'
 import './scss/style.scss'
-
-// We use those styles to show code examples, you should remove them in your application.
 import './scss/examples.scss'
+
+import { getTripData } from './dao/TripDao'
 
 // Containers
 const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'))
@@ -20,6 +20,14 @@ const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
 const App = () => {
   const { isColorModeSet, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
   const storedTheme = useSelector((state) => state.theme)
+
+  const fetchTripData = useCallback(async () => {
+    const trips = await getTripData()
+  }, [])
+
+  useEffect(() => {
+    fetchTripData()
+  }, [fetchTripData])
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.href.split('?')[1])
