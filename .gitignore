@@ -4,3 +4,7 @@ data/raw/
 
 # virtual environment
 myenv
+
+# python
+__pycache__/
+*.pyc

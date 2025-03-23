@@ -54,12 +54,13 @@ pip install -r requirements.txt
 
 ### Services
 
-| Service Name | Description                             | URL (UI)              | Notes                                                             |
+| Service Name | Description                             | URL                   | Notes                                                             |
 |--------------|-----------------------------------------|-----------------------|-------------------------------------------------------------------|
 | Postgres     | Database storage for application        | http://localhost:8080 | Login details found in docker-compose-storage.yml                 |
 | MinIO        | Object storage (S3 compatible)          | http://localhost:9090 | Webpage access to view and configurate MinIO                      |
 | MinIO Client | MinIO API calls                         | http://localhost:9000 | No webpage access but used for application to access the content. |
 | Kafdrop      | Kafka UI for checking topics & messages | http://localhost:9001 |                                                                   |
+| Backend      | FastAPI backend to serve API endpoints  | http://localhost:8000 | For displaying telematics data on frontend                        |
 
 ## Data
 

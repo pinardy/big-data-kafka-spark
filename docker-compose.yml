@@ -23,6 +23,12 @@ services:
       KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: test
 
+  backend:
+    image: backend:latest
+    container_name: backend
+    ports:
+      - "8000:8000"
+
   # TODO: Spark for batch processing
 
   # TODO: FastAPI server
