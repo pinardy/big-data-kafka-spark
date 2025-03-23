@@ -1,4 +1,3 @@
-
 import os, psycopg2, json
 
 def get_connection():

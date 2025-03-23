@@ -23,6 +23,18 @@ services:
       KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: test
 
+  backend:
+    image: backend:latest
+    container_name: backend
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+    ports:
+      - "8000:8000"
+
   # TODO: Spark for batch processing
 
   # TODO: FastAPI server
