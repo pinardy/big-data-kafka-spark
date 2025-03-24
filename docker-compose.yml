@@ -1,46 +1,69 @@
 services:
-  consumer:
-    image: consumer:latest
-    container_name: consumer
-    environment:
-      KAFKA_BROKER: kafka:9092
-      KAFKA_TOPIC: test
-      POSTGRES_DB: postgres
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-    depends_on:
-      kafka:
-        condition: service_healthy
+  # consumer:
+  #   image: consumer:latest
+  #   container_name: consumer
+  #   environment:
+  #     KAFKA_BROKER: kafka:9092
+  #     KAFKA_TOPIC: test
+  #     POSTGRES_DB: postgres
+  #     POSTGRES_USER: admin
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_HOST: postgres
+  #     POSTGRES_PORT: 5432
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
 
-  producer:
-    image: producer:latest
-    container_name: producer
-    depends_on:
-      - consumer
-    environment:
-      KAFKA_BROKER: kafka:9092
-      KAFKA_TOPIC: test
+  # producer:
+  #   image: producer:latest
+  #   container_name: producer
+  #   depends_on:
+  #     - consumer
+  #   environment:
+  #     KAFKA_BROKER: kafka:9092
+  #     KAFKA_TOPIC: test
 
-  backend:
-    image: backend:latest
-    container_name: backend
-    environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-    ports:
-      - "8000:8000"
+  # backend:
+  #   image: backend:latest
+  #   container_name: backend
+  #   environment:
+  #     POSTGRES_DB: postgres
+  #     POSTGRES_USER: admin
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_HOST: postgres
+  #     POSTGRES_PORT: 5432
+  #   ports:
+  #     - "8000:8000"
 
-  frontend:
-    image: frontend:latest
-    container_name: frontend
-    ports:
-      - "3000:80"
+  # frontend:
+  #   image: frontend:latest
+  #   container_name: frontend
+  #   ports:
+  #     - "3000:80"
 
   # TODO: Spark for batch processing
+  pyspark:
+    image: jupyter/pyspark-notebook:latest
+    container_name: pyspark
+    depends_on:
+      - postgres
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./pyspark:/home/jovyan/work
+    environment:
+      SPARK_DRIVER_MEMORY: 2g
+      SPARK_EXECUTOR_MEMORY: 2g
+      PYSPARK_PYTHON: python3
+      POSTGRES_DB: postgres
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+    command: start-notebook.sh --NotebookApp.token=''
 
   # TODO: FastAPI server
+
+networks:
+  postgres_network:
+    external: true # Ensure it matches PostgreSQL's network
