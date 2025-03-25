@@ -35,4 +35,4 @@ services:
       KAFKA_BROKERCONNECT: kafka:9092
       JVM_OPTS: "-Xms32M -Xmx64M"
     ports:
-      - "9001:9001"
+      - "9001:9000"

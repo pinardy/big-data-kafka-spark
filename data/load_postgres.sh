@@ -22,7 +22,24 @@ CREATE TABLE IF NOT EXISTS raw_data (
 );
 EOF
 
-echo "Creating table and loading data into PostgreSQL..."
+echo "Creating telematics_raw table"
+PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<EOF
+CREATE TABLE IF NOT EXISTS telematics_raw (
+    bookingID BIGINT PRIMARY KEY,
+    Accuracy FLOAT,
+    Bearing FLOAT,
+    acceleration_x FLOAT,
+    acceleration_y FLOAT,
+    acceleration_z FLOAT,
+    gyro_x FLOAT,
+    gyro_y FLOAT,
+    gyro_z FLOAT,
+    second FLOAT,
+    Speed FLOAT
+);
+EOF
+
+echo "Creating telematics table"
 PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<EOF
 CREATE TABLE IF NOT EXISTS telematics (
     bookingID BIGINT PRIMARY KEY,
@@ -41,6 +58,7 @@ CREATE TABLE IF NOT EXISTS telematics (
 EOF
 
 # Load data from CSV (skipping header)
+echo "Loading data into telematics table"
 PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\COPY telematics(bookingID, Speed_perc70, acceleration_x_min, acceleration_z_std, Bearing_std, acceleration_x_std, Speed_std, acceleration_y_std, acceleration_z_max, Speed_max, time, label) FROM '/data/safety_dataset_filtered.csv' DELIMITER ',' CSV HEADER;"
 
 echo "Data load complete"
