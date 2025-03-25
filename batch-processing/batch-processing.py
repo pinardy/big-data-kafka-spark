@@ -2,19 +2,20 @@ import os, json
 from pyspark.sql import SparkSession
 from kafka import KafkaConsumer
 
-MINIO_ADDRESS="minio"
-MINIO_PORT=9000
-MINIO_USER="miniouser"
-MINIO_PASSWORD="miniopassword"
+MINIO_ADDRESS = os.environ["MINIO_ADDRESS"]
+MINIO_PORT = os.environ["MINIO_PORT"]
+MINIO_USER = os.environ["MINIO_USER"]
+MINIO_PASSWORD = os.environ["MINIO_PASSWORD"]
 
-POSTGRES_ADDRESS="postgres_db"
-POSTGRES_PORT=5432
-POSTGRES_USER="admin"
-POSTGRES_PASSWORD="password"
+POSTGRES_ADDRESS = os.environ["POSTGRES_ADDRESS"]
+POSTGRES_PORT = os.environ["POSTGRES_PORT"]
+POSTGRES_USER = os.environ["POSTGRES_USER"]
+POSTGRES_PASSWORD = os.environ["POSTGRES_PASSWORD"]
 
 
-KAFKA_BROKER = "kafka:9092"
-KAFKA_TOPIC = "batch_processing"
+KAFKA_BROKER = os.environ["KAFKA_BROKER"]
+KAFKA_TOPIC = os.environ["KAFKA_TOPIC"]
+
 
 print("Starting PySpark with MinIO")
 
@@ -42,7 +43,7 @@ def minio_to_postgres(filepath):
     }
 
     # Write data into PostgreSQL table
-    df.write.jdbc(url=jdbc_url, table="raw_data", mode="append", properties=connection_properties)
+    df.write.jdbc(url=jdbc_url, table="telematics_raw", mode="append", properties=connection_properties)
 
 
     spark.stop()

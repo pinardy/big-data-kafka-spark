@@ -5,9 +5,11 @@ echo "Waiting for PostgreSQL to be ready..."
 until PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c '\q' 2>/dev/null; do
   sleep 2
 done
-echo "Creating raw data table..."
+
+
+echo "Creating telematics_raw table"
 PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<EOF
-CREATE TABLE IF NOT EXISTS raw_data (
+CREATE TABLE IF NOT EXISTS telematics_raw (
     bookingID BIGINT,
     Accuracy FLOAT,
     Bearing FLOAT,
@@ -18,24 +20,9 @@ CREATE TABLE IF NOT EXISTS raw_data (
     gyro_y FLOAT,
     gyro_z FLOAT,
     second FLOAT,
-    Speed FLOAT
-);
-EOF
+    Speed FLOAT,
 
-echo "Creating telematics_raw table"
-PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<EOF
-CREATE TABLE IF NOT EXISTS telematics_raw (
-    bookingID BIGINT PRIMARY KEY,
-    Accuracy FLOAT,
-    Bearing FLOAT,
-    acceleration_x FLOAT,
-    acceleration_y FLOAT,
-    acceleration_z FLOAT,
-    gyro_x FLOAT,
-    gyro_y FLOAT,
-    gyro_z FLOAT,
-    second FLOAT,
-    Speed FLOAT
+    PRIMARY KEY (bookingID, second)
 );
 EOF
 

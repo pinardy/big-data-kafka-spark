@@ -10,9 +10,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-    depends_on:
-      kafka:
-        condition: service_healthy
+
 
   producer:
     image: producer:latest
@@ -90,6 +88,17 @@ services:
       - SPARK_WORKER_MEMORY=512m
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_LOCAL_DIRS=/tmp/spark-temp
+      - MINIO_ADDRESS=minio
+      - MINIO_PORT=9000
+      - MINIO_USER=miniouser
+      - MINIO_PASSWORD=miniopassword
+      - POSTGRES_ADDRESS=postgres_db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+      - KAFKA_BROKER=kafka:9092
+      - KAFKA_TOPIC=batch_processing
+
     # entrypoint: [ "/bin/bash", "-c", "spark-submit --jars /tmp/postgresql-*.jar /scripts/batch-processing.py" ]
     entrypoint: ["/bin/bash", "-c", "while true; spark-submit --jars /tmp/postgresql-*.jar /scripts/batch-processing.py; do sleep 1000; done"]
     volumes:
