@@ -6,10 +6,11 @@ until PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER"
   sleep 2
 done
 
+
 echo "Creating telematics_raw table"
 PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<EOF
 CREATE TABLE IF NOT EXISTS telematics_raw (
-    bookingID BIGINT PRIMARY KEY,
+    bookingID BIGINT,
     Accuracy FLOAT,
     Bearing FLOAT,
     acceleration_x FLOAT,
@@ -19,7 +20,9 @@ CREATE TABLE IF NOT EXISTS telematics_raw (
     gyro_y FLOAT,
     gyro_z FLOAT,
     second FLOAT,
-    Speed FLOAT
+    Speed FLOAT,
+
+    PRIMARY KEY (bookingID, second)
 );
 EOF
 
