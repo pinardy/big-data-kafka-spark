@@ -44,9 +44,10 @@ services:
   # TODO: Spark for batch processing
   # Spark Master
   spark-master:
-    image: bitnami/spark:3.1.2
+    image: batch-processing:latest
     container_name: spark-master
     environment:
+      - JAVA_HOME=/opt/bitnami/java
       - SPARK_MODE=master
       - SPARK_MASTER_HOST=spark-master
       - SPARK_MASTER_PORT=7077
@@ -57,38 +58,44 @@ services:
       - "8089:8080"    # Spark UI
       - "7077:7077"    # Spark Master port
     volumes:
-      - spark-data:/bitnami/spark
+      - spark-data:/opt/bitnami/spark
       - ./batch-processing:/scripts
-
-  # Spark Worker
+      - ./data:/data
+     # Spark Worker
   spark-worker:
-    image: bitnami/spark:3.1.2
+    image: batch-processing:latest
     container_name: spark-worker
     environment:
+      - JAVA_HOME=/opt/bitnami/java
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_LOCAL_DIRS=/tmp/spark-temp
-      - PYTHONPATH=/opt/bitnami/spark/python
     depends_on:
       - spark-master
     volumes:
-      - spark-data:/bitnami/spark
+      - spark-data:/opt/bitnami/spark
+      - ./batch-processing:/scripts
+      - ./data:/data
 
   # Optionally, add a Spark Job Submission service
   spark-submit:
-    image: bitnami/spark:3.1.2
+    image: batch-processing:latest
     container_name: spark-submit
     depends_on:
       - spark-master
     environment:
+      - JAVA_HOME=/opt/bitnami/java
       - SPARK_MASTER=spark://spark-master:7077
       - SPARK_WORKER_CORES=1
       - SPARK_WORKER_MEMORY=512m
+      - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_LOCAL_DIRS=/tmp/spark-temp
-      - PYTHONPATH=/opt/bitnami/spark/python
-    entrypoint: ["/bin/bash", "-c", "while true; echo 'sleeping'; do sleep 1000; done"]
+    # entrypoint: [ "/bin/bash", "-c", "spark-submit --jars /tmp/postgresql-*.jar /scripts/batch-processing.py" ]
+    entrypoint: ["/bin/bash", "-c", "while true; spark-submit --jars /tmp/postgresql-*.jar /scripts/batch-processing.py; do sleep 1000; done"]
     volumes:
+      - spark-data:/opt/bitnami/spark
       - ./batch-processing:/scripts
+      - ./data:/data
   # TODO: FastAPI server
 
 volumes:
