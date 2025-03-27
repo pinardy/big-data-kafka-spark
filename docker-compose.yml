@@ -10,6 +10,9 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
+    depends_on:
+      kafka:
+        condition: service_healthy
 
 
   producer:
@@ -80,7 +83,10 @@ services:
     image: batch-processing:latest
     container_name: spark-submit
     depends_on:
-      - spark-master
+      spark-master:
+        condition: service_started
+      kafka:
+        condition: service_healthy
     environment:
       - JAVA_HOME=/opt/bitnami/java
       - SPARK_MASTER=spark://spark-master:7077
