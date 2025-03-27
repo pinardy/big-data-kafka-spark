@@ -113,11 +113,6 @@ const _nav = [
         name: 'Buttons groups',
         to: '/buttons/button-groups',
       },
-      {
-        component: CNavItem,
-        name: 'Dropdowns',
-        to: '/buttons/dropdowns',
-      },
     ],
   },
   {
