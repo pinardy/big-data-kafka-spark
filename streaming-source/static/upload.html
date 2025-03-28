@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>upload CSV</title>
+  </head>
+  <body>
+    <h2>upload several CSV files</h2>
+    <form id="uploadForm" enctype="multipart/form-data">
+      <input type="file" name="files" multiple accept=".csv" />
+      <button type="submit">Upload</button>
+    </form>
+
+    <h3>JSON：</h3>
+    <pre id="result"></pre>
+
+    <script>
+      const form = document.getElementById("uploadForm");
+      const result = document.getElementById("result");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+
+        const response = await fetch("/upload-multiple/", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+        const firstFew = Object.fromEntries(Object.entries(data).slice(0, 3));
+        result.textContent = JSON.stringify(firstFew, null, 2);
+      });
+    </script>
+  </body>
+</html>
