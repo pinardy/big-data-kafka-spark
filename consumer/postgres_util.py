@@ -35,7 +35,7 @@ def ingest_raw_data(conn, cursor, input: dict):
         cursor.execute(query, values)  # Convert JSON to string for insertion
         conn.commit()
 
-        print(f"Data ingested into PostgreSQL successfully: bookingID: {input.bookingID}, second: {input.second}")
+        print(f"Data ingested into PostgreSQL successfully: bookingID: {input['bookingID']}, second: {input['second']}")
         print("------------------------------------------------")
     except Exception as e:
         print(f"Error ingesting data into PostgreSQL: {e}")
