@@ -31,7 +31,7 @@ def consume_messages(consumer):
         conn, cursor = get_connection()
 
         for message in consumer:
-            print(f"Received message: {message.value} from topic: {message.topic}")
+            print(f"Received message: Booking ID: {message.value['bookingID']}, Second: {message.value['second']}")
             ingest_raw_data(conn, cursor, message.value)
     except KeyboardInterrupt:
         print("Stopped consuming messages")
