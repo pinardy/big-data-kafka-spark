@@ -69,8 +69,7 @@ The data labels and data dictionary can be found in the `/data` folder.
 ```
 ├──- labels.csv                Labels for driving trips safety
 ├──- data_dictionary.xlsx      Data dictionary to explain fields in dataset
-  ├──- raw                     Contains Raw data used in the application, manual extraction from kaggle required.
-
+  ├──- raw                     Contains raw data used in the application. Manual extraction from the raw dataset below required
 ```
 
 The raw dataset source is in CSV format and can be found at [kaggle](https://www.kaggle.com/datasets/vancharmlab/grabai).
@@ -78,3 +77,5 @@ The raw dataset source is in CSV format and can be found at [kaggle](https://www
 We have split the raw dataset into two parts:
 1) [First part](https://drive.google.com/file/d/1uZFnSLJEk_KECungCZJBnf_M0wv2sUI-/view?usp=drive_link) to be served from a **FastAPI server** in **JSON** format
 2) [Second part](https://drive.google.com/file/d/1EdybA11rurBooihyecUQUVHmDwN0_O1Q/view?usp=drive_link) to be stored in a **MinIO file server** in **CSV** format
+
+Download the first part and place it in within the `producer` folder.
