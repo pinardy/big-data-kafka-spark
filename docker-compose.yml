@@ -4,7 +4,7 @@ services:
     container_name: consumer
     environment:
       KAFKA_BROKER: kafka:9092
-      KAFKA_TOPIC: test
+      KAFKA_TOPIC: streaming
       POSTGRES_DB: postgres
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
@@ -14,7 +14,6 @@ services:
       kafka:
         condition: service_healthy
 
-
   producer:
     image: producer:latest
     container_name: producer
@@ -22,7 +21,9 @@ services:
       - consumer
     environment:
       KAFKA_BROKER: kafka:9092
-      KAFKA_TOPIC: test
+      KAFKA_TOPIC: streaming
+    ports:
+      - "8001:8000"
 
   backend:
     image: backend:latest
@@ -42,8 +43,6 @@ services:
     ports:
       - "3000:80"
 
-  # TODO: Spark for batch processing
-  # Spark Master
   spark-master:
     image: batch-processing:latest
     container_name: spark-master
@@ -62,7 +61,7 @@ services:
       - spark-data:/opt/bitnami/spark
       - ./batch-processing:/scripts
       - ./data:/data
-     # Spark Worker
+
   spark-worker:
     image: batch-processing:latest
     container_name: spark-worker
@@ -78,7 +77,6 @@ services:
       - ./batch-processing:/scripts
       - ./data:/data
 
-  # Optionally, add a Spark Job Submission service
   spark-submit:
     image: batch-processing:latest
     container_name: spark-submit
@@ -111,11 +109,9 @@ services:
       - spark-data:/opt/bitnami/spark
       - ./batch-processing:/scripts
       - ./data:/data
-  # TODO: FastAPI server
 
 volumes:
   minio_data:
     driver: local
   postgres_data:
   spark-data:
-  # TODO: FastAPI server
