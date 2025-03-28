@@ -37,9 +37,7 @@ def create_producer(broker):
 
 async def send_message(producer, topic, message):
     try:
-        # producer.send(topic, message)
-        # Use asyncio.to_thread to run the synchronous producer.send in a separate thread
-        print(f"Sent: bookingID': {message.get('bookingID')}, 'second': {message.get('second')}")
+        print(f"Sent: bookingID: {message.get('bookingID')}, 'second': {message.get('second')}", flush=True)
         await asyncio.to_thread(producer.send, topic, message)
 
     except Exception as e:
@@ -52,11 +50,11 @@ async def stream_booking_trips(producer, trips):
         await asyncio.sleep(2)
 
 
-# Run "curl -X POST http://localhost:8000/stream_trips" to start streaming data to Kafka
-@app.post("/stream_trips")
+# Run "curl -X POST http://localhost:8000/stream_trips_demo" to start streaming data to Kafka
+@app.post("/stream_trips_demo")
 async def stream_trips():
     """
-    Streams trip data to Kafka topic to simulate many drivers sending trip data in real-time
+    Streams trip data to Kafka topic to simulate 2 drivers sending trip data in real-time
     """
     try:
         producer = create_producer(KAFKA_BROKER)
@@ -75,6 +73,29 @@ async def stream_trips():
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Run "curl -X POST http://localhost:8000/stream_trips" to start streaming data to Kafka
+@app.post("/stream_trips")
+async def stream_trips():
+    """
+    Streams trip data to Kafka topic to simulate 20000 drivers sending trip data in real-time
+    """
+    try:
+        producer = create_producer(KAFKA_BROKER)
+
+        tasks = []
+        for i, (booking_id, trips) in enumerate(grouped_data.items()):
+            task = asyncio.create_task(stream_booking_trips(producer, trips))
+            tasks.append(task)
+
+        # Run all tasks concurrently
+        await asyncio.gather(*tasks)
+        return { "message": "Streaming to Kafka completed successfully" }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 
 # Shutdown hook to close the Kafka producer
 @app.on_event("shutdown")
