@@ -23,10 +23,13 @@ const App = () => {
 
   const fetchTripData = useCallback(async () => {
     const trips = await getTripData()
+    return trips
   }, [])
 
   useEffect(() => {
-    fetchTripData()
+    const trips = fetchTripData()
+    console.log('trips: ', trips)
+    // TODO: use trips to display relevant charts & visualisations
   }, [fetchTripData])
 
   useEffect(() => {
