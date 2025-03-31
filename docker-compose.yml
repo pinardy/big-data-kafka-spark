@@ -46,6 +46,8 @@ services:
     ports:
       - "3000:80"
 
+  # TODO: Spark for batch processing
+  # Spark Master
   spark-master:
     image: batch-processing:latest
     container_name: spark-master
@@ -109,3 +111,4 @@ volumes:
     driver: local
   postgres_data:
   spark-data:
+  # TODO: FastAPI server
