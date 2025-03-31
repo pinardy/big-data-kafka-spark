@@ -1,0 +1,37 @@
+import os, json, time
+from kafka import KafkaProducer
+
+KAFKA_BROKER = os.environ["KAFKA_BROKER"]
+# KAFKA_TOPIC = os.environ["KAFKA_TOPIC"]
+KAFKA_TOPIC = "telematics-stream"   # For test the streaming producer only
+
+def create_producer(broker):
+    producer = KafkaProducer(
+        bootstrap_servers=[broker],
+        value_serializer=lambda v: json.dumps(v).encode('utf-8')  # Serialize messages to JSON
+    )
+    return producer
+
+def send_message(producer, topic, message):
+    try:
+        producer.send(topic, message)
+        print(f"Message sent to topic '{topic}': {message}")
+
+    except Exception as e:
+        print(f"Failed to send message: {e}")
+        
+if __name__ == "__main__":
+    producer = create_producer(KAFKA_BROKER)
+    
+    with open('sample-streaming.json', 'r') as file:
+        messages = json.load(file)
+
+        for message in messages:
+            send_message(producer, KAFKA_TOPIC, message)
+            time.sleep(1)
+
+    print("after sending messages")
+    producer.flush()  # Ensure all messages are sent before closing
+    print("flushing messages")
+    producer.close()
+    print("closing producer")

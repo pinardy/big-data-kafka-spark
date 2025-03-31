@@ -61,7 +61,8 @@ services:
       - spark-data:/opt/bitnami/spark
       - ./batch-processing:/scripts
       - ./data:/data
-      # Spark Worker
+
+  # Spark Worker
   spark-worker:
     image: batch-processing:latest
     container_name: spark-worker
@@ -104,18 +105,54 @@ services:
       - KAFKA_BROKER=kafka:9092
       - KAFKA_TOPIC=batch_processing
 
-    # entrypoint: [ "/bin/bash", "-c", "spark-submit --jars /tmp/postgresql-*.jar /scripts/batch-processing.py" ]
-    entrypoint:
-      [
+    entrypoint: [
         "/bin/bash",
         "-c",
-        "while true; spark-submit --jars /tmp/postgresql-*.jar /scripts/batch-processing.py; do sleep 1000; done",
+        "
+        echo 'Running Batch Processing... [CLOSED]';
+        # spark-submit --jars /tmp/postgresql-*.jar /scripts/batch-processing.py;
+
+        echo 'Sleeping for 24 hours... [INCOMPLETE]';
+        # sleep 86400;  # Wait 24 hours before next batch
+
+        echo 'Running Model Training... [TEST]';
+        # spark-submit --jars /tmp/postgresql-*.jar /scripts/model-training.py;
+        ",
       ]
     volumes:
       - spark-data:/opt/bitnami/spark
       - ./batch-processing:/scripts
       - ./data:/data
-  # TODO: FastAPI server
+
+  streaming-handler:
+    image: sparkml:latest
+    container_name: streaming-handler
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      - JAVA_HOME=/opt/bitnami/java
+      - KAFKA_BROKER=kafka:9092
+      - KAFKA_TOPIC_INPUT=streaming_data
+      - KAFKA_TOPIC_OUTPUT=predictions-stream
+      - POSTGRES_ADDRESS=postgres_db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+      - MINIO_ADDRESS=minio
+      - MINIO_PORT=9000
+      - MINIO_USER=miniouser
+      - MINIO_PASSWORD=miniopassword
+    entrypoint: [
+        "/bin/bash",
+        "-c",
+        "
+        echo 'Starting Streaming Data Handler...';
+        python /scripts/streaming-data-handling.py
+        ",
+      ]
+    volumes:
+      - ./sparkml:/scripts
 
 volumes:
   minio_data:
