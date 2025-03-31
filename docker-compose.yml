@@ -103,7 +103,6 @@ services:
       - ./data:/data
     entrypoint: [ "/bin/bash", "-c", "while true; do echo 'starting script as backend tasks'; sh /scripts/spark-tasks.sh;sleep 1000; done" ]
 
-
 volumes:
   minio_data:
     driver: local

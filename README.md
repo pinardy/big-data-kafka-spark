@@ -13,6 +13,7 @@
 🗂️── frontend                        Frontend for visualizing insights on telematics data and ride safety
 🗂️── producer                        Producer application code
 ```
+
 ## Getting Started
 
 ### Docker
@@ -79,6 +80,7 @@ pip install -r requirements.txt
 | Batch Ingestion of Raw Data | Service to carry out ingestion of raw data from files in minio | http://localhost:8081 | Called when in need to ingest raw files into the system           |  
 | Telematics consolidation    | Service to carry out telematics consolidation of rides         | http://localhost:8082 | Called periodically to consolidate ride information captured      |  
   
+
 ## Data
 
 The data labels and data dictionary can be found in the `/data` folder.
