@@ -3,10 +3,14 @@
 ## Folder Structure
 
 ```
+├──- docker-compose-kafka.yml        Docker compose file to start up all Kafka services containers
 ├──- docker-compose.yml              Docker compose file to start up all application containers
 ├──- docker-compose-storage.yml      Docker compose file to start up all storage containers
-🗂️── data                            Store data to be used for application (Would be made avaiable upon startup of MinIO)
+🗂️── backend                         FastAPI server to serve data to frontend
+🗂️── batch-processing                Batch processing using PySpark
 🗂️── consumer                        Consumer application code
+🗂️── data                            Store data to be used for application (Would be made avaiable upon startup of MinIO)
+🗂️── frontend                        Frontend for visualizing insights on telematics data and ride safety
 🗂️── producer                        Producer application code
 ```
 ## Getting Started
@@ -14,13 +18,23 @@
 ### Docker
 Ensure that docker is already installed. 
 
-You will need to build the `consumer` and `producer` images in the respective folders:
+You will need to build the following images in their respective folders:
+
 ```sh
-# Run in the consumer folder
+# consumer image (run in consumer folder)
 docker build -t consumer .
 
-# Run in the consumer folder
+# producer image (run in producer folder)
 docker build -t producer .
+
+# batch-processing image (run in batch-processing folder)
+docker build -t batch-processing .
+
+# frontend image (run in frontend folder)
+docker build -t frontend .
+
+# backend image (run in backend folder)
+docker build -t backend .
 ```
 
 Start all services with:
