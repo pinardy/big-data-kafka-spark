@@ -17,6 +17,13 @@ POSTGRES_USER = os.environ["POSTGRES_USER"]
 POSTGRES_PASSWORD = os.environ["POSTGRES_PASSWORD"]
 
 
+<<<<<<<< HEAD:spark-server/batch_processing.py
+========
+KAFKA_BROKER = os.environ["KAFKA_BROKER"]
+KAFKA_TOPIC = os.environ["KAFKA_TOPIC_BATCH"]
+
+
+>>>>>>>> 50ca974 (feat: fix the issues in streaming):spark-server/batch-processing.py
 print("Starting PySpark with MinIO")
 
     # Create a Spark session

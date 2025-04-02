@@ -108,4 +108,5 @@ async def stream_trips():
 # Shutdown hook to close the Kafka producer
 @app.on_event("shutdown")
 def shutdown_event(producer: KafkaProducer):
+    print(" --[ Kafka producer closed ]-- ")
     producer.close()
