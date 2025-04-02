@@ -4,7 +4,7 @@ services:
     container_name: consumer
     environment:
       KAFKA_BROKER: kafka:9092
-      KAFKA_TOPIC: test
+      KAFKA_TOPIC: streaming
       POSTGRES_DB: postgres
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
@@ -21,7 +21,9 @@ services:
       - consumer
     environment:
       KAFKA_BROKER: kafka:9092
-      KAFKA_TOPIC: test
+      KAFKA_TOPIC: streaming
+    ports:
+      - "8001:8000"
 
   backend:
     image: backend:latest
@@ -41,8 +43,6 @@ services:
     ports:
       - "3000:80"
 
-  # TODO: Spark for batch processing
-  # Spark Master
   spark-master:
     image: batch-processing:latest
     container_name: spark-master
@@ -62,7 +62,6 @@ services:
       - ./batch-processing:/scripts
       - ./data:/data
 
-  # Spark Worker
   spark-worker:
     image: batch-processing:latest
     container_name: spark-worker
@@ -78,7 +77,6 @@ services:
       - ./batch-processing:/scripts
       - ./data:/data
 
-  # Optionally, add a Spark Job Submission service
   spark-submit:
     image: batch-processing:latest
     container_name: spark-submit
@@ -133,8 +131,8 @@ services:
     environment:
       - JAVA_HOME=/opt/bitnami/java
       - KAFKA_BROKER=kafka:9092
-      - KAFKA_TOPIC_INPUT=streaming_data
-      - KAFKA_TOPIC_OUTPUT=predictions-stream
+      - KAFKA_TOPIC_INPUT=streaming
+      - KAFKA_TOPIC_OUTPUT=predictions
       - POSTGRES_ADDRESS=postgres_db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=admin
@@ -159,4 +157,3 @@ volumes:
     driver: local
   postgres_data:
   spark-data:
-  # TODO: FastAPI server

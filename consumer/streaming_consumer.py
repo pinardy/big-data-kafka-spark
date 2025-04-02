@@ -2,7 +2,7 @@ import os, json
 from kafka import KafkaConsumer
 
 KAFKA_BROKER = os.environ["KAFKA_BROKER"]
-KAFKA_TOPIC = "predictions-stream" # os.environ["KAFKA_TOPIC"]
+KAFKA_TOPIC = "predictions" # os.environ["KAFKA_TOPIC"]
 
 
 def create_consumer(broker, topic):

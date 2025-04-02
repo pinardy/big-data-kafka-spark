@@ -8,3 +8,7 @@ myenv
 # python
 __pycache__/
 *.pyc
+
+# raw data
+part-00000-*.csv
+part-00001-*.csv

@@ -3,10 +3,14 @@
 ## Folder Structure
 
 ```
+├──- docker-compose-kafka.yml        Docker compose file to start up all Kafka services containers
 ├──- docker-compose.yml              Docker compose file to start up all application containers
 ├──- docker-compose-storage.yml      Docker compose file to start up all storage containers
-🗂️── data                            Store data to be used for application (Would be made avaiable upon startup of MinIO)
+🗂️── backend                         FastAPI server to serve data to frontend
+🗂️── batch-processing                Batch processing using PySpark
 🗂️── consumer                        Consumer application code
+🗂️── data                            Store data to be used for application (Would be made avaiable upon startup of MinIO)
+🗂️── frontend                        Frontend for visualizing insights on telematics data and ride safety
 🗂️── producer                        Producer application code
 ```
 
@@ -16,14 +20,23 @@
 
 Ensure that docker is already installed.
 
-You will need to build the `consumer` and `producer` images in the respective folders:
+You will need to build the following images in their respective folders:
 
 ```sh
-# Run in the consumer folder
+# consumer image (run in consumer folder)
 docker build -t consumer .
 
-# Run in the producer folder
+# producer image (run in producer folder)
 docker build -t producer .
+
+# batch-processing image (run in batch-processing folder)
+docker build -t batch-processing .
+
+# frontend image (run in frontend folder)
+docker build -t frontend .
+
+# backend image (run in backend folder)
+docker build -t backend .
 ```
 
 Start all services with:
@@ -78,8 +91,7 @@ The data labels and data dictionary can be found in the `/data` folder.
 ```
 ├──- labels.csv                Labels for driving trips safety
 ├──- data_dictionary.xlsx      Data dictionary to explain fields in dataset
-  ├──- raw                     Contains Raw data used in the application, manual extraction from kaggle required.
-
+  ├──- raw                     Contains raw data used in the application. Manual extraction from the raw dataset below required
 ```
 
 The raw dataset source is in CSV format and can be found at [kaggle](https://www.kaggle.com/datasets/vancharmlab/grabai).
@@ -88,3 +100,5 @@ We have split the raw dataset into two parts:
 
 1. [First part](https://drive.google.com/file/d/1uZFnSLJEk_KECungCZJBnf_M0wv2sUI-/view?usp=drive_link) to be served from a **FastAPI server** in **JSON** format
 2. [Second part](https://drive.google.com/file/d/1EdybA11rurBooihyecUQUVHmDwN0_O1Q/view?usp=drive_link) to be stored in a **MinIO file server** in **CSV** format
+
+Download the first part and place it in within the `producer` folder.

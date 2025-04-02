@@ -14,11 +14,6 @@ MINIO_PORT = os.environ["MINIO_PORT"]
 MINIO_USER = os.environ["MINIO_USER"]
 MINIO_PASSWORD = os.environ["MINIO_PASSWORD"]
 
-# PostgreSQL Connection
-POSTGRES_ADDRESS = os.environ["POSTGRES_ADDRESS"]
-POSTGRES_PORT = os.environ["POSTGRES_PORT"]
-POSTGRES_USER = os.environ["POSTGRES_USER"]
-POSTGRES_PASSWORD = os.environ["POSTGRES_PASSWORD"]
 
 # Kafka Connection
 KAFKA_BROKER = os.environ["KAFKA_BROKER"]
@@ -58,28 +53,6 @@ def load_model_from_minio():
     return model, metadata
 
 
-# Store Streaming Data in PostgreSQL
-def store_streaming_data(data, spark):
-    # Define the schema for the data
-    schema = ["bookingID", "Accuracy", "Bearing", "acceleration_x", "acceleration_y", 
-              "acceleration_z", "gyro_x", "gyro_y", "gyro_z", "second", "Speed"]
-
-    # Create a DataFrame from the data
-    df = spark.createDataFrame(data, schema=schema)
-
-    # Write the DataFrame to PostgreSQL
-    df.write \
-        .format("jdbc") \
-        .option("url", f"jdbc:postgresql://{POSTGRES_ADDRESS}:{POSTGRES_PORT}/postgres") \
-        .option("dbtable", "telematics") \
-        .option("user", POSTGRES_USER) \
-        .option("password", POSTGRES_PASSWORD) \
-        .option("driver", "org.postgresql.Driver") \
-        .mode("append") \
-        .save()
-
-    print("✅ Streaming data stored in PostgreSQL.")
-
 # Predict New Data
 def predict_new_data(model, metadata, new_data_df):
     # Recreate assembler from metadata
@@ -117,9 +90,6 @@ def process_and_predict(consumer, producer):
             # Add bookingID to each record
             record["bookingID"] = bookingID
             data_batch.append(record)
-        
-        # Store multiple records in PostgreSQL
-        store_streaming_data(data_batch, spark)
 
         # Convert data to DataFrame
         df = spark.createDataFrame(data_batch)
@@ -199,4 +169,3 @@ if __name__ == "__main__":
     producer = create_producer(KAFKA_BROKER)
     consume_messages(consumer, producer)
     
-# TEST: docker exec -it producer python ./streaming_producer.py

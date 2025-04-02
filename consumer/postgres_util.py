@@ -1,4 +1,4 @@
-import os, psycopg2, json
+import os, psycopg2
 
 def get_connection():
     # Connect to PostgreSQL database
@@ -9,17 +9,18 @@ def get_connection():
         host=os.environ["POSTGRES_HOST"],
         port=os.environ["POSTGRES_PORT"]
     )
+    conn.autocommit = True
     return conn, conn.cursor()
 
 
 def ingest_raw_data(conn, cursor, input: dict):
     try:
         query = """
-        INSERT INTO telematics_raw (bookingId, Accuracy, Bearing, acceleration_x, acceleration_y, acceleration_z, gyro_x, gyro_y, gyro_z, second, Speed)
+        INSERT INTO telematics_raw (bookingID, Accuracy, Bearing, acceleration_x, acceleration_y, acceleration_z, gyro_x, gyro_y, gyro_z, second, Speed)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
         """
         values = (
-            input["bookingId"],
+            input["bookingID"],
             input["Accuracy"],
             input["Bearing"],
             input["acceleration_x"],
@@ -34,6 +35,7 @@ def ingest_raw_data(conn, cursor, input: dict):
         cursor.execute(query, values)  # Convert JSON to string for insertion
         conn.commit()
 
-        print(f"Data ingested into PostgreSQL successfully: {input}")
+        print(f"Data ingested into PostgreSQL successfully: bookingID: {input['bookingID']}, second: {input['second']}")
+        print("------------------------------------------------")
     except Exception as e:
         print(f"Error ingesting data into PostgreSQL: {e}")
