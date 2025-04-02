@@ -36,6 +36,9 @@ docker build -t frontend .
 
 # backend image (run in backend folder)
 docker build -t backend .
+
+# sparkml image (run in sparkml folder)
+docker build -t sparkml .
 ```
 
 Start all services with:
