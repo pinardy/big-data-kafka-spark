@@ -31,7 +31,7 @@ def load_model_from_minio():
 # Store Streaming Data in PostgreSQL
 def store_streaming_data(data, spark):
     # Define the schema for the data
-    schema = ["bookingID", "Accuracy", "Bearing", "acceleration_x", "acceleration_y", 
+    schema = ["bookingID", "Accuracy", "Bearing", "acceleration_x", "acceleration_y",
               "acceleration_z", "gyro_x", "gyro_y", "gyro_z", "second", "Speed"]
 
     # Create a DataFrame from the data
@@ -55,7 +55,7 @@ def store_streaming_data(data, spark):
 def process_and_predict(consumer, producer):
     # Load model from MinIO
     model = load_model_from_minio()
-    
+
     # Initialize Spark
     spark = SparkSession.builder \
         .appName("PySpark with Streaming Data Storing") \
@@ -67,12 +67,12 @@ def process_and_predict(consumer, producer):
 
         # Store received data
         store_streaming_data([(data["bookingID"], data["Accuracy"], data["Bearing"], data["acceleration_x"],
-                               data["acceleration_y"], data["acceleration_z"], data["gyro_x"], data["gyro_y"], 
+                               data["acceleration_y"], data["acceleration_z"], data["gyro_x"], data["gyro_y"],
                                data["gyro_z"], data["second"], data["Speed"])], spark)
 
         # Prepare data for prediction
         feature_vector = [
-            data["Speed"], data["acceleration_x"], data["acceleration_y"], 
+            data["Speed"], data["acceleration_x"], data["acceleration_y"],
             data["acceleration_z"], data["gyro_x"], data["gyro_y"], data["gyro_z"]
         ]
         prediction = model.transform([feature_vector])[0]
@@ -82,9 +82,9 @@ def process_and_predict(consumer, producer):
         producer.send(KAFKA_TOPIC_OUTPUT, prediction_message)
 
         print(f"✅ Sent prediction: {prediction_message}")
-        
+
     print("Finished processing and predicting.")
-        
+
 def create_consumer(broker, topic):
     try:
         print(f"Attempting to connect to Kafka broker: {broker} under topic: {topic}")
@@ -98,7 +98,7 @@ def create_consumer(broker, topic):
         return consumer
     except Exception as e:
         print(f"Error connecting to Kafka broker: {e}")
-        
+
 def create_producer(broker):
     try:
         print(f"Attempting to connect to Kafka broker: {broker}")
