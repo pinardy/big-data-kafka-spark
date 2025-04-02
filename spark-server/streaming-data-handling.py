@@ -16,19 +16,8 @@ MINIO_PASSWORD = os.environ["MINIO_PASSWORD"]
 
 # Kafka Connection
 KAFKA_BROKER = os.environ["KAFKA_BROKER"]
-KAFKA_TOPIC_INPUT = os.environ["KAFKA_TOPIC_INPUT"]
-KAFKA_TOPIC_OUTPUT = os.environ["KAFKA_TOPIC_OUTPUT"]
-
-# Download folder from MinIO - [stupid function]
-def download_folder(minio_client, bucket_name, folder_path, local_dir):
-    objects = minio_client.list_objects(bucket_name, prefix=folder_path, recursive=True)
-    for obj in objects:
-        # Ensure local directory structure exists
-        local_path = os.path.join(local_dir, obj.object_name)
-        os.makedirs(os.path.dirname(local_path), exist_ok=True)
-        # Download file
-        minio_client.fget_object(bucket_name, obj.object_name, local_path)
-    print(f"Downloaded all files from {folder_path} to {local_dir}")
+KAFKA_TOPIC_INPUT = os.environ["KAFKA_TOPIC_STREAM"]
+KAFKA_TOPIC_OUTPUT = os.environ["KAFKA_TOPIC_PREDICTION"]
 
 # Load Model from MinIO
 def load_model_from_minio():
@@ -39,29 +28,25 @@ def load_model_from_minio():
         secure=False
     )
     
-    bucket_name = "models"
-    model_folder = "sparkml_model/"
+    minio_bucket = "models"
+    minio_url = "s3a://models/sparkml_model"  # Adjust if needed
     metadata_path = "rf_model/metadata.json"
     
-    local_model_dir = "/tmp/sparkml_model"
     local_metadata_path = "/tmp/model_metadata.json"
     
     try:
-        # 1. Download entire model folder
-        download_folder(minio_client, bucket_name, model_folder, local_model_dir)
-        print(f"Downloaded model folder from {model_folder} to {local_model_dir}")
-        
-        # 2. Download metadata
-        minio_client.fget_object(bucket_name, metadata_path, local_metadata_path)
-        print(f"Downloaded metadata from {metadata_path} to {local_metadata_path}")
-        
-        # Load model and metadata
-        model = RandomForestClassificationModel.load(local_model_dir)
-        print(f"Loaded model from {local_model_dir} successfully")
+        # Download metadata
+        minio_client.fget_object(minio_bucket, metadata_path, local_metadata_path)
+        print(f"---- Downloaded metadata from {metadata_path} to {local_metadata_path}")
         
         with open(local_metadata_path, "r") as f:
             metadata = json.load(f)
         print(f"Loaded metadata from {local_metadata_path} successfully")
+        
+        model = RandomForestClassificationModel.load(minio_url)
+        print(f"Loaded model from {minio_url} successfully")
+        
+        print(f"Model metadata: {metadata[f'feature_columns']}")
         
         return model, metadata
         
@@ -71,12 +56,17 @@ def load_model_from_minio():
 
 # Predict New Data
 def predict_new_data(model, metadata, new_data_df):
-    assembler = VectorAssembler(
-        inputCols=metadata["feature_columns"],
-        outputCol="features"
-    )
+    new_data_df.printSchema()
+
+    feature_columns = [col for col in new_data_df.columns if col != "label"] 
+    assembler = VectorAssembler(inputCols=feature_columns, outputCol="features")
     assembled_data = assembler.transform(new_data_df)
-    return model.transform(assembled_data)
+    
+    predict_result = model.transform(assembled_data)
+    
+    print("Predict result schema:")
+    predict_result.printSchema()
+    return predict_result.select("prediction").first()[0]
 
 # In-memory buffer for tracking records per bookingID
 data_buffer = defaultdict(deque)  # Stores up to 15 records per bookingID
@@ -87,17 +77,15 @@ STEP_SIZE = 5 # Number of records to step forward
 
 # Background thread to process stale records
 def cleanup_stale_records(producer, model, metadata, spark):
-    while True:
-        time.sleep(5)  # Check every 5 seconds
-        current_time = time.time()
-        print(f"Checking for stale records at {current_time}...")
-        expired_bookings = [bid for bid, t in booking_timestamps.items() if current_time - t > TIMEOUT_SECONDS]
-        for bid in expired_bookings:
-            if len(data_buffer[bid]) > 0:
-                process_and_predict(bid, list(data_buffer[bid]), producer, model, metadata, spark)
-                del data_buffer[bid]
-                del booking_timestamps[bid]
-                print(f"Processed stale bookingID: {bid}")
+    current_time = time.time()
+    print(f"Checking for stale records at {current_time}...")
+    expired_bookings = [bid for bid, t in booking_timestamps.items() if current_time - t > TIMEOUT_SECONDS]
+    for bid in expired_bookings:
+        if len(data_buffer[bid]) > 0:
+            process_and_predict(bid, list(data_buffer[bid]), producer, model, metadata, spark)
+            del data_buffer[bid]
+            del booking_timestamps[bid]
+            print(f"Processed stale bookingID: {bid}")
 
 # Process records and make predictions
 def process_and_predict(bookingID, records, producer, model, metadata, spark):
@@ -124,7 +112,7 @@ def process_and_predict(bookingID, records, producer, model, metadata, spark):
         "label": int(prediction)
     }
     producer.send(KAFKA_TOPIC_OUTPUT, prediction_message)
-    print(f"✅ Sent prediction: {prediction_message}")
+    print(f"Sent prediction: {prediction_message}")
 
 # Kafka Consumer
 def consume_messages(consumer, producer, model, metadata, spark):
@@ -132,22 +120,23 @@ def consume_messages(consumer, producer, model, metadata, spark):
         for message in consumer:
             data = message.value
             bookingID = data["bookingID"]
-            records = data["records"]
             booking_timestamps[bookingID] = time.time()
+
+            data_buffer[bookingID].append(data)
             
-            for record in records:
-                record["bookingID"] = bookingID
-                data_buffer[bookingID].append(record)
+            print(f"Received data for bookingID: {bookingID}, buffer size: {len(data_buffer[bookingID])}")
+            
+            # Trigger and slide window
+            if len(data_buffer[bookingID]) == WINDOW_SIZE:
+                # Get the records needed for prediction
+                needed_records = list(data_buffer[bookingID])[:WINDOW_SIZE]
                 
-                if len(data_buffer[bookingID]) > 15:
-                    data_buffer[bookingID].popleft()  # Keep only last 15 records
-                    
-                    # Trigger and slide window
-                    if len(data_buffer[bookingID]) == WINDOW_SIZE:
-                        process_and_predict(bookingID, list(data_buffer[bookingID]), producer, model, metadata, spark)
-                        
-                        # Slide window by removing STEP_SIZE oldest records
-                        data_buffer[bookingID] = deque(list(data_buffer[bookingID])[STEP_SIZE:])
+                # Slide window by removing STEP_SIZE oldest records
+                data_buffer[bookingID] = deque(list(data_buffer[bookingID])[STEP_SIZE:])
+                
+                print(f"Processing bookingID: {bookingID}, but now records count from {WINDOW_SIZE} to - {len(data_buffer[bookingID])}")
+                
+                process_and_predict(bookingID, needed_records, producer, model, metadata, spark)
                 
             cleanup_stale_records(producer, model, metadata, spark)  # Check for stale records
                 
@@ -170,8 +159,17 @@ if __name__ == "__main__":
         bootstrap_servers=[KAFKA_BROKER],
         value_serializer=lambda v: json.dumps(v).encode('utf-8')
     )
+    print("Connected to Kafka successfully")
     
-    spark = SparkSession.builder.appName("PySpark Streaming Processor").getOrCreate()
+    spark = SparkSession.builder \
+                        .appName("PySpark Streaming Processor") \
+                        .config("spark.hadoop.fs.s3a.endpoint", f"http://{MINIO_ADDRESS}:{MINIO_PORT}")\
+                        .config("spark.hadoop.fs.s3a.access.key", MINIO_USER) \
+                        .config("spark.hadoop.fs.s3a.secret.key", MINIO_PASSWORD) \
+                        .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+                        .config("spark.hadoop.fs.s3a.path.style.access", "true") \
+                        .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false") \
+                        .getOrCreate()
     model, metadata = load_model_from_minio()
         
     consume_messages(consumer, producer, model, metadata, spark)

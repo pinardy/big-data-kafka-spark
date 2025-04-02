@@ -14,7 +14,7 @@ POSTGRES_PASSWORD = os.environ["POSTGRES_PASSWORD"]
 
 
 KAFKA_BROKER = os.environ["KAFKA_BROKER"]
-KAFKA_TOPIC = os.environ["KAFKA_TOPIC"]
+KAFKA_TOPIC = os.environ["KAFKA_TOPIC_BATCH"]
 
 
 print("Starting PySpark with MinIO")
