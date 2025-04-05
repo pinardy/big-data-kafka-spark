@@ -10,7 +10,9 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   producer:
     image: producer:latest
@@ -44,34 +46,33 @@ services:
   spark-master:
     image: batch-processing:latest
     container_name: spark-master
+    env_file:
+      - ./batch-processing/.env
     environment:
-      - JAVA_HOME=/opt/bitnami/java
       - SPARK_MODE=master
       - SPARK_MASTER_HOST=spark-master
       - SPARK_MASTER_PORT=7077
       - SPARK_UI_PORT=8080
       - SPARK_RPC_AUTHENTICATION_ENABLED=false
-      - SPARK_LOCAL_DIRS=/tmp/spark-temp
     ports:
       - "8089:8080"    # Spark UI
       - "7077:7077"    # Spark Master port
     volumes:
-      - spark-data:/opt/bitnami/spark
       - ./batch-processing:/scripts
       - ./data:/data
 
+  # Spark Worker
   spark-worker:
     image: batch-processing:latest
-    container_name: spark-worker
+#    container_name: spark-worker
     environment:
-      - JAVA_HOME=/opt/bitnami/java
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_LOCAL_DIRS=/tmp/spark-temp
+    env_file:
+      - ./batch-processing/.env
     depends_on:
       - spark-master
     volumes:
-      - spark-data:/opt/bitnami/spark
       - ./batch-processing:/scripts
       - ./data:/data
 
@@ -83,30 +84,22 @@ services:
         condition: service_started
       kafka:
         condition: service_healthy
+    ports:
+      - "8081:8081"
+      - "8082:8082"
     environment:
-      - JAVA_HOME=/opt/bitnami/java
       - SPARK_MASTER=spark://spark-master:7077
       - SPARK_WORKER_CORES=1
       - SPARK_WORKER_MEMORY=512m
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_LOCAL_DIRS=/tmp/spark-temp
-      - MINIO_ADDRESS=minio
-      - MINIO_PORT=9000
-      - MINIO_USER=miniouser
-      - MINIO_PASSWORD=miniopassword
-      - POSTGRES_ADDRESS=postgres_db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=password
-      - KAFKA_BROKER=kafka:9092
-      - KAFKA_TOPIC=batch_processing
-
-    # entrypoint: [ "/bin/bash", "-c", "spark-submit --jars /tmp/postgresql-*.jar /scripts/batch-processing.py" ]
-    entrypoint: ["/bin/bash", "-c", "while true; spark-submit --jars /tmp/postgresql-*.jar /scripts/batch-processing.py; do sleep 1000; done"]
+    env_file:
+      - ./batch-processing/.env
     volumes:
-      - spark-data:/opt/bitnami/spark
       - ./batch-processing:/scripts
       - ./data:/data
+    entrypoint: [ "/bin/bash", "-c", "while true; do echo 'starting script as backend tasks'; sh /scripts/spark-tasks.sh;sleep 1000; done" ]
+
 
 volumes:
   minio_data:

@@ -1,6 +1,11 @@
 import os, json
 from pyspark.sql import SparkSession
 from kafka import KafkaConsumer
+import uvicorn
+from pydantic import BaseModel
+from fastapi import FastAPI
+
+FAST_API_PORT = int(os.environ.get("FAST_API_BATCH_PORT", 8081))
 
 MINIO_ADDRESS = os.environ["MINIO_ADDRESS"]
 MINIO_PORT = os.environ["MINIO_PORT"]
@@ -14,14 +19,14 @@ POSTGRES_PASSWORD = os.environ["POSTGRES_PASSWORD"]
 
 
 KAFKA_BROKER = os.environ["KAFKA_BROKER"]
-KAFKA_TOPIC = os.environ["KAFKA_TOPIC"]
+KAFKA_TOPIC = os.environ["KAFKA_TOPIC_BATCH"]
 
 
 print("Starting PySpark with MinIO")
 
     # Create a Spark session
 def minio_to_postgres(filepath):
-    print(f"reading file : {filepath}")
+    print(f"====================START OF handling {filepath}====================")
     spark = SparkSession.builder \
         .appName("PySpark with MinIO") \
         .config("spark.hadoop.fs.s3a.endpoint", f"http://{MINIO_ADDRESS}:{MINIO_PORT}")\
@@ -33,7 +38,7 @@ def minio_to_postgres(filepath):
         .getOrCreate()
     # Example: Reading from and writing to MinIO
     df = spark.read.csv(f"s3a://{filepath}", header=True, inferSchema=True)
-
+    # df= df.withColumnRenamed("bookingId", "booking_id")
     # Define PostgreSQL connection properties
     jdbc_url = f"jdbc:postgresql://{POSTGRES_ADDRESS}:{POSTGRES_PORT}/postgres"
     connection_properties = {
@@ -48,37 +53,21 @@ def minio_to_postgres(filepath):
 
     spark.stop()
 
+    print(f"====================COMPLETED of {filepath} ====================")
 
 
-# def main():
-#     minio_to_postgres("s3a://bigdata/raw/part-*.csv")
-def create_consumer(broker, topic):
-    try:
-        print(f"Attempting to connect to Kafka broker: {broker} under topic: {topic}")
-        consumer = KafkaConsumer(
-            topic,
-            bootstrap_servers=[broker],
-            auto_offset_reset='earliest',  # Read messages from the beginning of the topic
-            value_deserializer=lambda m: json.loads(m.decode('utf-8'))  # Deserialize bytes into JSON
-        )
-        print("Connected to Kafka broker successfully")
-        return consumer
+    return f"File {filepath} processed successfully."
 
-    except Exception as e:
-        print(f"Error connecting to Kafka broker: {e}")
+app = FastAPI()
 
-def consume_messages(consumer):
-    try:
-        for message in consumer:
-            print(f"Received message: {message.value} from topic: {message.topic}")
-            minio_to_postgres(message.value['filepath'])
-    except KeyboardInterrupt:
-        print("Stopped consuming messages")
-    finally:
-        consumer.close()
+class Item(BaseModel):
+    filepath: str
 
+@app.post("/filepath")
+async def predict(data: Item):
+    result = minio_to_postgres(data.filepath)
+
+    return {"status": "success", "message": f"{result}"}
 
 if __name__ == "__main__":
-    # minio_to_postgres("bigdata/raw/part-00000*.csv")
-    consumer = create_consumer(KAFKA_BROKER, KAFKA_TOPIC)
-    consume_messages(consumer)
+    uvicorn.run("batch_processing:app", host="0.0.0.0", port=FAST_API_PORT, reload=True)
