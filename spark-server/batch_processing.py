@@ -1,5 +1,6 @@
-import os
+import os, json
 from pyspark.sql import SparkSession
+from kafka import KafkaConsumer
 import uvicorn
 from pydantic import BaseModel
 from fastapi import FastAPI

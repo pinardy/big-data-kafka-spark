@@ -50,7 +50,7 @@ services:
     image: spark-server:latest
     container_name: spark-master
     env_file:
-      - ./batch-processing/.env
+      - ./spark-server/.env
     environment:
       - SPARK_MODE=master
       - SPARK_MASTER_HOST=spark-master
@@ -61,7 +61,7 @@ services:
       - "8089:8080" # Spark UI
       - "7077:7077" # Spark Master port
     volumes:
-      - ./batch-processing:/scripts
+      - ./spark-server:/scripts
       - ./data:/data
 
   # Spark Worker
@@ -72,11 +72,11 @@ services:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
     env_file:
-      - ./batch-processing/.env
+      - ./spark-server/.env
     depends_on:
       - spark-master
     volumes:
-      - ./batch-processing:/scripts
+      - ./spark-server:/scripts
       - ./data:/data
 
   spark-submit:
@@ -97,9 +97,9 @@ services:
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_LOCAL_DIRS=/tmp/spark-temp
     env_file:
-      - ./batch-processing/.env
+      - ./spark-server/.env
     volumes:
-      - ./batch-processing:/scripts
+      - ./spark-server:/scripts
       - ./data:/data
     entrypoint: [ "/bin/bash", "-c", "while true; do echo 'starting script as backend tasks'; sh /scripts/spark-tasks.sh;sleep 1000; done" ]
 
