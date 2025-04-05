@@ -13,12 +13,10 @@
 🗂️── frontend                        Frontend for visualizing insights on telematics data and ride safety
 🗂️── producer                        Producer application code
 ```
-
 ## Getting Started
 
 ### Docker
-
-Ensure that docker is already installed.
+Ensure that docker is already installed. 
 
 You will need to build the following images in their respective folders:
 
@@ -37,13 +35,9 @@ docker build -t frontend .
 
 # backend image (run in backend folder)
 docker build -t backend .
-
-# sparkml image (run in sparkml folder)
-docker build -t sparkml .
 ```
 
 Start all services with:
-
 ```sh
 docker-compose -f docker-compose-kafka.yml -f docker-compose-storage.yml -f docker-compose.yml up -d
 ```
@@ -51,46 +45,43 @@ docker-compose -f docker-compose-kafka.yml -f docker-compose-storage.yml -f dock
 You can view the started containers on Docker Desktop.
 
 Stop all services with:
-
 ```sh
 docker-compose -f docker-compose-kafka.yml -f docker-compose-storage.yml -f docker-compose.yml down
 ```
 
 ### Python Virtual Environment
 
-1. Create your own virtual environment:
-
+1) Create your own virtual environment:
 ```sh
 python3 -m venv myenv
 ```
 
-2. Activate the virtual environment:
-
+2) Activate the virtual environment:
 ```sh
 source myenv/bin/activate
 ```
 
-3. Install the python packages in the virtual environment:
-
+3) Install the python packages in the virtual environment:
 ```sh
 pip install -r requirements.txt
 ```
 
 ### Services
 
-| Service Name | Description                             | URL                   | Notes                                                             |
-| ------------ | --------------------------------------- | --------------------- | ----------------------------------------------------------------- |
-| Postgres     | Database storage for application        | http://localhost:8080 | Login details found in docker-compose-storage.yml                 |
-| MinIO        | Object storage (S3 compatible)          | http://localhost:9090 | Webpage access to view and configurate MinIO                      |
-| MinIO Client | MinIO API calls                         | http://localhost:9000 | No webpage access but used for application to access the content. |
-| Kafdrop      | Kafka UI for checking topics & messages | http://localhost:9001 |                                                                   |
-| Backend      | FastAPI backend to serve API endpoints  | http://localhost:8000 | For displaying telematics data on frontend                        |
-| Frontend     | React frontend                          | http://localhost:3000 | Frontend to display telematics data                               |
-
+| Service Name                | Description                                                    | URL                   | Notes                                                             |
+|-----------------------------|----------------------------------------------------------------|-----------------------|-------------------------------------------------------------------|
+| Postgres                    | Database storage for application                               | http://localhost:8080 | Login details found in docker-compose-storage.yml                 |
+| MinIO                       | Object storage (S3 compatible)                                 | http://localhost:9090 | Webpage access to view and configurate MinIO                      |
+| MinIO Client                | MinIO API calls                                                | http://localhost:9000 | No webpage access but used for application to access the content. |
+| Kafdrop                     | Kafka UI for checking topics & messages                        | http://localhost:9001 |                                                                   |
+| Backend                     | FastAPI backend to serve API endpoints                         | http://localhost:8000 | For displaying telematics data on frontend                        |
+| Frontend                    | React frontend                                                 | http://localhost:3000 | Frontend to display telematics data                               |  
+| Batch Ingestion of Raw Data | Service to carry out ingestion of raw data from files in minio | http://localhost:8081 | Called when in need to ingest raw files into the system           |  
+| Telematics consolidation    | Service to carry out telematics consolidation of rides         | http://localhost:8082 | Called periodically to consolidate ride information captured      |  
+  
 ## Data
 
 The data labels and data dictionary can be found in the `/data` folder.
-
 ```
 ├──- labels.csv                Labels for driving trips safety
 ├──- data_dictionary.xlsx      Data dictionary to explain fields in dataset
