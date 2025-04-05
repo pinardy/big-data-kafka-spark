@@ -68,15 +68,17 @@ pip install -r requirements.txt
 
 ### Services
 
-| Service Name | Description                             | URL                   | Notes                                                             |
-|--------------|-----------------------------------------|-----------------------|-------------------------------------------------------------------|
-| Postgres     | Database storage for application        | http://localhost:8080 | Login details found in docker-compose-storage.yml                 |
-| MinIO        | Object storage (S3 compatible)          | http://localhost:9090 | Webpage access to view and configurate MinIO                      |
-| MinIO Client | MinIO API calls                         | http://localhost:9000 | No webpage access but used for application to access the content. |
-| Kafdrop      | Kafka UI for checking topics & messages | http://localhost:9001 |                                                                   |
-| Backend      | FastAPI backend to serve API endpoints  | http://localhost:8000 | For displaying telematics data on frontend                        |
-| Frontend     | React frontend                          | http://localhost:3000 | Frontend to display telematics data                               |
-
+| Service Name                | Description                                                    | URL                   | Notes                                                             |
+|-----------------------------|----------------------------------------------------------------|-----------------------|-------------------------------------------------------------------|
+| Postgres                    | Database storage for application                               | http://localhost:8080 | Login details found in docker-compose-storage.yml                 |
+| MinIO                       | Object storage (S3 compatible)                                 | http://localhost:9090 | Webpage access to view and configurate MinIO                      |
+| MinIO Client                | MinIO API calls                                                | http://localhost:9000 | No webpage access but used for application to access the content. |
+| Kafdrop                     | Kafka UI for checking topics & messages                        | http://localhost:9001 |                                                                   |
+| Backend                     | FastAPI backend to serve API endpoints                         | http://localhost:8000 | For displaying telematics data on frontend                        |
+| Frontend                    | React frontend                                                 | http://localhost:3000 | Frontend to display telematics data                               |  
+| Batch Ingestion of Raw Data | Service to carry out ingestion of raw data from files in minio | http://localhost:8081 | Called when in need to ingest raw files into the system           |  
+| Telematics consolidation    | Service to carry out telematics consolidation of rides         | http://localhost:8082 | Called periodically to consolidate ride information captured      |  
+  
 ## Data
 
 The data labels and data dictionary can be found in the `/data` folder.
