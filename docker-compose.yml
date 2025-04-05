@@ -46,35 +46,34 @@ services:
   spark-master:
     image: spark-server:latest
     container_name: spark-master
+    env_file:
+      - ./batch-processing/.env
     environment:
-      - JAVA_HOME=/opt/bitnami/java
       - SPARK_MODE=master
       - SPARK_MASTER_HOST=spark-master
       - SPARK_MASTER_PORT=7077
       - SPARK_UI_PORT=8080
       - SPARK_RPC_AUTHENTICATION_ENABLED=false
-      - SPARK_LOCAL_DIRS=/tmp/spark-temp
     ports:
       - "8089:8080" # Spark UI
       - "7077:7077" # Spark Master port
     volumes:
-      - spark-data:/opt/bitnami/spark
-      - ./spark-server:/scripts
+      - ./batch-processing:/scripts
       - ./data:/data
 
+  # Spark Worker
   spark-worker:
     image: spark-server:latest
     container_name: spark-worker
     environment:
-      - JAVA_HOME=/opt/bitnami/java
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_LOCAL_DIRS=/tmp/spark-temp
+    env_file:
+      - ./batch-processing/.env
     depends_on:
       - spark-master
     volumes:
-      - spark-data:/opt/bitnami/spark
-      - ./spark-server:/scripts
+      - ./batch-processing:/scripts
       - ./data:/data
 
   spark-submit:
@@ -85,46 +84,22 @@ services:
         condition: service_started
       kafka:
         condition: service_healthy
+    ports:
+      - "8081:8081"
+      - "8082:8082"
     environment:
-      - JAVA_HOME=/opt/bitnami/java
       - SPARK_MASTER=spark://spark-master:7077
       - SPARK_WORKER_CORES=1
       - SPARK_WORKER_MEMORY=512m
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_LOCAL_DIRS=/tmp/spark-temp
-      - MINIO_ADDRESS=minio
-      - MINIO_PORT=9000
-      - MINIO_USER=miniouser
-      - MINIO_PASSWORD=miniopassword
-      - POSTGRES_ADDRESS=postgres_db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=password
-      - KAFKA_BROKER=kafka:9092
-      - KAFKA_TOPIC_BATCH=batch_processing
-      - KAFKA_TOPIC_STREAM=streaming
-      - KAFKA_TOPIC_PREDICTION=predictions
-    entrypoint: [
-        "/bin/bash",
-        "-c",
-        "
-        echo 'Submitting Streaming Job...';
-        spark-submit --master spark://spark-master:7077 /scripts/streaming-data-handling.py # add & will run in background, for test, remove it.
-
-        echo 'Waiting for 24 hours before batch processing...';
-        # sleep 86400;
-
-        echo 'Running Batch Processing...';
-        # spark-submit --master spark://spark-master:7077 --jars /tmp/postgresql-*.jar /scripts/batch-processing.py;
-
-        echo 'Running Model Training...';
-        # spark-submit --master spark://spark-master:7077 --jars /tmp/postgresql-*.jar /scripts/model-training.py;
-        ",
-      ]
+    env_file:
+      - ./batch-processing/.env
     volumes:
-      - spark-data:/opt/bitnami/spark
-      - ./spark-server:/scripts
+      - ./batch-processing:/scripts
       - ./data:/data
+    entrypoint: [ "/bin/bash", "-c", "while true; do echo 'starting script as backend tasks'; sh /scripts/spark-tasks.sh;sleep 1000; done" ]
+
 
 volumes:
   minio_data:
