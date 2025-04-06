@@ -1,8 +1,7 @@
-import os,json
+import os, uvicorn
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.functions import count, col
-import uvicorn
 from pydantic import BaseModel
 from fastapi import FastAPI
 
@@ -93,7 +92,6 @@ def telematics_consolidation(command):
     spark.stop()
 
     return returnString
-
 
 
 class Item(BaseModel):
