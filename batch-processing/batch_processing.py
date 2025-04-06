@@ -1,6 +1,5 @@
-import os, json
+import os
 from pyspark.sql import SparkSession
-from kafka import KafkaConsumer
 import uvicorn
 from pydantic import BaseModel
 from fastapi import FastAPI
@@ -16,10 +15,6 @@ POSTGRES_ADDRESS = os.environ["POSTGRES_ADDRESS"]
 POSTGRES_PORT = os.environ["POSTGRES_PORT"]
 POSTGRES_USER = os.environ["POSTGRES_USER"]
 POSTGRES_PASSWORD = os.environ["POSTGRES_PASSWORD"]
-
-
-KAFKA_BROKER = os.environ["KAFKA_BROKER"]
-KAFKA_TOPIC = os.environ["KAFKA_TOPIC_BATCH"]
 
 
 print("Starting PySpark with MinIO")
