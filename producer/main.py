@@ -6,10 +6,12 @@ from kafka import KafkaProducer
 app = FastAPI()
 
 KAFKA_BROKER = os.environ["KAFKA_BROKER"]
-KAFKA_TOPIC = os.environ["KAFKA_TOPIC"]
+KAFKA_INGESTION_TOPIC = os.environ["KAFKA_INGESTION_TOPIC"]
+KAFKA_LIVE_DATA_TOPIC = os.environ["KAFKA_LIVE_DATA_TOPIC"]
 
 # KAFKA_BROKER = "localhost:9092"
-# KAFKA_TOPIC = "streaming"
+# KAFKA_INGESTION_TOPIC = "streaming"
+# KAFKA_LIVE_DATA_TOPIC = "live"
 
 data_file_path = "./part-00000-e6120af0-10c2-4248-97c4-81baf4304e5c-c000.csv"
 
@@ -38,6 +40,12 @@ def create_producer(broker):
 async def send_message(producer, topic, message):
     try:
         print(f"Sent: bookingID: {message.get('bookingID')}, 'second': {message.get('second')}", flush=True)
+
+        # For demo purposes of live streaming of bookingID 0 to backend
+        if (message.get('bookingID') == 0):
+            await asyncio.to_thread(producer.send, KAFKA_LIVE_DATA_TOPIC, message)
+
+        # For data ingestion
         await asyncio.to_thread(producer.send, topic, message)
 
     except Exception as e:
@@ -46,7 +54,7 @@ async def send_message(producer, topic, message):
 
 async def stream_booking_trips(producer, trips):
     for trip in trips:
-        await send_message(producer, KAFKA_TOPIC, trip)
+        await send_message(producer, KAFKA_INGESTION_TOPIC, trip)
         await asyncio.sleep(2)
 
 
@@ -54,7 +62,7 @@ async def stream_booking_trips(producer, trips):
 @app.post("/stream_trips_demo")
 async def stream_trips():
     """
-    Streams trip data to Kafka topic to simulate 2 drivers sending trip data in real-time
+    Streams trip data to Kafka topic to simulate 3 drivers sending trip data in real-time
     """
     try:
         producer = create_producer(KAFKA_BROKER)

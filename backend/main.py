@@ -1,7 +1,11 @@
-import os, psycopg2
-from fastapi import FastAPI
+import os, psycopg2, json, asyncio
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg2.extras import RealDictCursor
+from kafka import KafkaConsumer
+
+KAFKA_BROKER = os.environ["KAFKA_BROKER"]
+KAFKA_TOPIC = os.environ["KAFKA_TOPIC"]
 
 app = FastAPI()
 
@@ -44,3 +48,22 @@ async def get_all_trips():
         return rows
     except Exception as e:
         return {"error": str(e)}
+    
+# Websocket for live streaming data to frontend
+@app.websocket("/ws/live-data")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        consumer = KafkaConsumer(
+            os.environ["KAFKA_TOPIC"],
+            bootstrap_servers=[os.environ["KAFKA_BROKER"]],
+            auto_offset_reset='earliest',
+            value_deserializer=lambda m: json.loads(m.decode('utf-8'))
+        )
+
+        for message in consumer:
+            await websocket.send_json(message.value)
+    except WebSocketDisconnect:
+        print("WebSocket client disconnected")
+    finally:
+        consumer.close()
