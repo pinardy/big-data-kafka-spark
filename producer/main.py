@@ -50,7 +50,7 @@ async def stream_booking_trips(producer, trips):
         await asyncio.sleep(2)
 
 
-# Run "curl -X POST http://localhost:8000/stream_trips_demo" to start streaming data to Kafka
+# Run "curl -X POST http://localhost:8001/stream_trips_demo" to start streaming data to Kafka
 @app.post("/stream_trips_demo")
 async def stream_trips():
     """
@@ -75,7 +75,7 @@ async def stream_trips():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Run "curl -X POST http://localhost:8000/stream_trips" to start streaming data to Kafka
+# Run "curl -X POST http://localhost:8001/stream_trips" to start streaming data to Kafka
 @app.post("/stream_trips")
 async def stream_trips():
     """

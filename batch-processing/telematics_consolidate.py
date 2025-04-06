@@ -1,9 +1,7 @@
-import os,json
+import os, uvicorn
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from kafka import KafkaConsumer
 from pyspark.sql.functions import count, col
-import uvicorn
 from pydantic import BaseModel
 from fastapi import FastAPI
 
@@ -19,11 +17,6 @@ POSTGRES_ADDRESS = os.environ["POSTGRES_ADDRESS"]
 POSTGRES_PORT = os.environ["POSTGRES_PORT"]
 POSTGRES_USER = os.environ["POSTGRES_USER"]
 POSTGRES_PASSWORD = os.environ["POSTGRES_PASSWORD"]
-
-
-KAFKA_BROKER = os.environ["KAFKA_BROKER"]
-KAFKA_TOPIC = os.environ["KAFKA_TOPIC_CONSOLIDATING"]
-
 
 
 db_connection_url = f"jdbc:postgresql://{POSTGRES_ADDRESS}:{POSTGRES_PORT}/postgres"
@@ -99,7 +92,6 @@ def telematics_consolidation(command):
     spark.stop()
 
     return returnString
-
 
 
 class Item(BaseModel):
