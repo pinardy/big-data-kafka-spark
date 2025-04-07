@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useCallback } from 'react'
+import React, { Suspense, useEffect, useState, useCallback } from 'react'
 import { HashRouter, Route, Routes } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 
@@ -16,21 +16,24 @@ const Login = React.lazy(() => import('./views/pages/login/Login'))
 const Register = React.lazy(() => import('./views/pages/register/Register'))
 const Page404 = React.lazy(() => import('./views/pages/page404/Page404'))
 const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
+const Trip = React.lazy(() => import('./views/pages/trip/Trip'))
 
 const App = () => {
   const { isColorModeSet, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
   const storedTheme = useSelector((state) => state.theme)
+  const [trips, setTrips] = useState([])
 
   const fetchTripData = useCallback(async () => {
     const trips = await getTripData()
-    return trips
+    setTrips(trips)
   }, [])
 
   useEffect(() => {
-    const trips = fetchTripData()
-    console.log('trips: ', trips)
+    fetchTripData()
     // TODO: use trips to display relevant charts & visualisations
   }, [fetchTripData])
+
+  console.log(trips)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.href.split('?')[1])
@@ -60,6 +63,7 @@ const App = () => {
           <Route exact path="/register" name="Register Page" element={<Register />} />
           <Route exact path="/404" name="Page 404" element={<Page404 />} />
           <Route exact path="/500" name="Page 500" element={<Page500 />} />
+          <Route exact path="/trip" name="Trip" element={<Trip />} />
           <Route path="*" name="Home" element={<DefaultLayout />} />
         </Routes>
       </Suspense>
