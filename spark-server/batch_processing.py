@@ -38,7 +38,10 @@ def minio_to_postgres(filepath):
         .getOrCreate()
     # Example: Reading from and writing to MinIO
     df = spark.read.csv(f"s3a://{filepath}", header=True, inferSchema=True)
-    # df= df.withColumnRenamed("bookingId", "booking_id")
+
+    # lower case all column name read.
+    df = df.toDF(*[c.strip().lower() for c in df.columns])
+
     # Define PostgreSQL connection properties
     jdbc_url = f"jdbc:postgresql://{POSTGRES_ADDRESS}:{POSTGRES_PORT}/postgres"
     connection_properties = {

@@ -32,8 +32,13 @@ db_properties = {
 }
 
 # Load data from PostgreSQL table
-df = spark.read.jdbc(url=jdbc_url, table="telematics", properties=db_properties)
-
+# df = spark.read.jdbc(url=jdbc_url, table="telematics", properties=db_properties)
+sql ='(SELECT * FROM telematics WHERE telematics.label is not null) AS telematics'
+df = spark.read.jdbc(
+    url=jdbc_url,
+    table=sql,
+    properties=db_properties
+)
 # Preprocessing: Assemble features into a single vector
 feature_columns = [col for col in df.columns if col != "label"] 
 assembler = VectorAssembler(inputCols=feature_columns, outputCol="features")

@@ -27,11 +27,11 @@ db_properties = {
 }
 
 def removeDuplicate(df):
-    a_counts = df.groupBy("bookingID").agg(count("*").alias("cnt"))
+    a_counts = df.groupBy("bookingid").agg(count("*").alias("cnt"))
 
-    unique_a = a_counts.filter(col("cnt") == 1).select("bookingID")
+    unique_a = a_counts.filter(col("cnt") == 1).select("bookingid")
 
-    return df.join(unique_a, on="bookingID", how="inner")
+    return df.join(unique_a, on="bookingid", how="inner")
 
 
 def telematics_consolidation(command):

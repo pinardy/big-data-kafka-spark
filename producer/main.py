@@ -13,20 +13,23 @@ KAFKA_LIVE_DATA_TOPIC = os.environ["KAFKA_LIVE_DATA_TOPIC"]
 # KAFKA_INGESTION_TOPIC = "streaming"
 # KAFKA_LIVE_DATA_TOPIC = "live"
 
-data_file_path = "./part-00000-e6120af0-10c2-4248-97c4-81baf4304e5c-c000.csv"
+def read_from_csv():
+    data_file_path = "./part-00000-e6120af0-10c2-4248-97c4-81baf4304e5c-c000.csv"
 
-# Simulating streaming data from a CSV file (using pandas)
-df = pd.read_csv(data_file_path)
+    # Simulating streaming data from a CSV file (using pandas)
+    df = pd.read_csv(data_file_path)
+    df.columns = df.columns.str.lower()
+    # Sort data by "bookingID" and "second" for grouping trips in order of occurrence
+    df = df.sort_values(by=["bookingid", "second"])
 
-# Sort data by "bookingID" and "second" for grouping trips in order of occurrence
-df = df.sort_values(by=["bookingID", "second"])
+    # Group by "bookingID" and collect the records as a list of dictionaries
+    grouped_data = (
+        df.groupby("bookingid")
+        .apply(lambda x: x.to_dict(orient="records"))
+        .to_dict()
+    )
 
-# Group by "bookingID" and collect the records as a list of dictionaries
-grouped_data = (
-    df.groupby("bookingID")
-    .apply(lambda x: x.to_dict(orient="records"))
-    .to_dict()
-)
+    return grouped_data
 
 
 def create_producer(broker):
@@ -39,13 +42,13 @@ def create_producer(broker):
 
 async def send_message(producer, topic, message):
     try:
-        print(f"Sent: bookingID: {message.get('bookingID')}, 'second': {message.get('second')}", flush=True)
+        print(f"Sent: bookingid: {message.get('bookingid')}, 'second': {message.get('second')}", flush=True)
 
         # For demo purposes of live streaming of bookingID 0 to backend
-        if (message.get('bookingID') == 0):
+        if (message.get('bookingid') == 0):
             await asyncio.to_thread(producer.send, KAFKA_LIVE_DATA_TOPIC, message)
 
-        # For data ingestion
+
         await asyncio.to_thread(producer.send, topic, message)
 
     except Exception as e:
@@ -68,6 +71,7 @@ async def stream_trips():
         producer = create_producer(KAFKA_BROKER)
 
         tasks = []
+        grouped_data= read_from_csv()
         for i, (booking_id, trips) in enumerate(grouped_data.items()):
             task = asyncio.create_task(stream_booking_trips(producer, trips))
             tasks.append(task)
@@ -93,6 +97,7 @@ async def stream_trips():
         producer = create_producer(KAFKA_BROKER)
 
         tasks = []
+        grouped_data= read_from_csv()
         for i, (booking_id, trips) in enumerate(grouped_data.items()):
             task = asyncio.create_task(stream_booking_trips(producer, trips))
             tasks.append(task)
