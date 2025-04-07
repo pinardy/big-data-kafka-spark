@@ -21,7 +21,8 @@ services:
       - consumer
     environment:
       KAFKA_BROKER: kafka:9092
-      KAFKA_TOPIC: streaming
+      KAFKA_INGESTION_TOPIC: streaming
+      KAFKA_LIVE_DATA_TOPIC: live
     ports:
       - "8001:8000"
 
@@ -34,6 +35,8 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
+      KAFKA_BROKER: kafka:9092
+      KAFKA_TOPIC: live
     ports:
       - "8000:8000"
 
