@@ -127,6 +127,13 @@ const _nav = [
     to: '/widgets',
     icon: <CIcon icon={cilCalculator} customClassName="nav-icon" />,
   },
+  {
+    component: CNavItem,
+    name: 'Trip',
+    to: '/trip',
+    icon: <CIcon icon={cilSpeedometer} customClassName="nav-icon" />, 
+  },
+  
   // {
   //   component: CNavGroup,
   //   name: 'Pages',
