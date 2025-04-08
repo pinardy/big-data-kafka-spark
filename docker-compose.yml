@@ -10,6 +10,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
+      KAFKA_INGESTION_TOPIC: streaming
     depends_on:
       kafka:
         condition: service_healthy
@@ -47,10 +48,10 @@ services:
       - "3000:80"
 
   spark-master:
-    image: batch-processing:latest
+    image: spark-server:latest
     container_name: spark-master
     env_file:
-      - ./batch-processing/.env
+      - ./spark-server/.env
     environment:
       - SPARK_MODE=master
       - SPARK_MASTER_HOST=spark-master
@@ -61,26 +62,26 @@ services:
       - "8089:8080"    # Spark UI
       - "7077:7077"    # Spark Master port
     volumes:
-      - ./batch-processing:/scripts
+      - ./spark-server:/scripts
       - ./data:/data
 
   # Spark Worker
   spark-worker:
-    image: batch-processing:latest
+    image: spark-server:latest
 #    container_name: spark-worker
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
     env_file:
-      - ./batch-processing/.env
+      - ./spark-server/.env
     depends_on:
       - spark-master
     volumes:
-      - ./batch-processing:/scripts
+      - ./spark-server:/scripts
       - ./data:/data
 
   spark-submit:
-    image: batch-processing:latest
+    image: spark-server:latest
     container_name: spark-submit
     depends_on:
       spark-master:
@@ -88,8 +89,8 @@ services:
       kafka:
         condition: service_healthy
     ports:
-      - "8081:8081"
-      - "8082:8082"
+      - "8002:8002"
+      - "8003:8003"
     environment:
       - SPARK_MASTER=spark://spark-master:7077
       - SPARK_WORKER_CORES=1
@@ -97,11 +98,11 @@ services:
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_LOCAL_DIRS=/tmp/spark-temp
     env_file:
-      - ./batch-processing/.env
+      - ./spark-server/.env
     volumes:
-      - ./batch-processing:/scripts
+      - ./spark-server:/scripts
       - ./data:/data
-    entrypoint: [ "/bin/bash", "-c", "while true; do echo 'starting script as backend tasks'; sh /scripts/spark-tasks.sh;sleep 1000; done" ]
+    entrypoint: [ "/bin/bash", "-c", "while true; do echo 'starting script as backend tasks'; sh /scripts/spark_tasks.sh;sleep 1000; done" ]
 
 
 volumes:

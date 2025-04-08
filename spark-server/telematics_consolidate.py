@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from fastapi import FastAPI
 
 
-FAST_API_PORT = int(os.environ.get("FAST_API_CONSOLIDATE_PORT", 8082))
+FAST_API_PORT = int(os.environ.get("FAST_API_CONSOLIDATE_PORT", 8003))
 
 MINIO_ADDRESS = os.environ["MINIO_ADDRESS"]
 MINIO_PORT = os.environ["MINIO_PORT"]

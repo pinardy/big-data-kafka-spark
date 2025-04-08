@@ -16,7 +16,7 @@ MINIO_PASSWORD = os.environ["MINIO_PASSWORD"]
 
 # Kafka Connection
 KAFKA_BROKER = os.environ["KAFKA_BROKER"]
-KAFKA_TOPIC_INPUT = os.environ["KAFKA_TOPIC_STREAM"]
+KAFKA_TOPIC_INPUT = os.environ["KAFKA_TOPIC_STREAMING"]
 KAFKA_TOPIC_OUTPUT = os.environ["KAFKA_TOPIC_PREDICTION"]
 
 # Load Model from MinIO
@@ -56,7 +56,7 @@ def load_model_from_minio():
 
 # Predict New Data
 def predict_new_data(model, metadata, new_data_df):
-    new_data_df.printSchema()
+    # new_data_df.printSchema()
 
     feature_columns = [col for col in new_data_df.columns if col != "label"]
     assembler = VectorAssembler(inputCols=feature_columns, outputCol="features")
@@ -64,8 +64,8 @@ def predict_new_data(model, metadata, new_data_df):
 
     predict_result = model.transform(assembled_data)
 
-    print("Predict result schema:")
-    predict_result.printSchema()
+    # print("Predict result schema:")
+    # predict_result.printSchema()
     return predict_result.select("prediction").first()[0]
 
 # In-memory buffer for tracking records per bookingID
@@ -78,36 +78,36 @@ STEP_SIZE = 5 # Number of records to step forward
 # Background thread to process stale records
 def cleanup_stale_records(producer, model, metadata, spark):
     current_time = time.time()
-    print(f"Checking for stale records at {current_time}...")
+    # print(f"Checking for stale records at {current_time}...")
     expired_bookings = [bid for bid, t in booking_timestamps.items() if current_time - t > TIMEOUT_SECONDS]
     for bid in expired_bookings:
         if len(data_buffer[bid]) > 0:
             process_and_predict(bid, list(data_buffer[bid]), producer, model, metadata, spark)
             del data_buffer[bid]
             del booking_timestamps[bid]
-            print(f"Processed stale bookingID: {bid}")
+            # print(f"Processed stale bookingID: {bid}")
 
 # Process records and make predictions
 def process_and_predict(bookingID, records, producer, model, metadata, spark):
     df = spark.createDataFrame(records)
-    processed_df = df.groupBy("bookingID").agg(
-        max("Speed").alias("Speed_max"),
-        stddev("Speed").alias("Speed_std"),
+    processed_df = df.groupBy("bookingid").agg(
+        max("speed").alias("speed_max"),
+        stddev("speed").alias("speed_std"),
         min("acceleration_x").alias("acceleration_x_min"),
         max("acceleration_z").alias("acceleration_z_max"),
         stddev("acceleration_x").alias("acceleration_x_std"),
         stddev("acceleration_y").alias("acceleration_y_std"),
         stddev("acceleration_z").alias("acceleration_z_std"),
-        stddev("Bearing").alias("Bearing_std"),
+        stddev("bearing").alias("bearing_std"),
         max("second").alias("time"),
         stddev("gyro_x").alias("gyro_x_std"),
         stddev("gyro_y").alias("gyro_y_std"),
         stddev("gyro_z").alias("gyro_z_std"),
-    ).withColumn("Speed_perc70", col("Speed_max") * 0.7)
+    ).withColumn("speed_perc70", col("speed_max") * 0.7)
 
-    prediction = predict_new_data(model, metadata, processed_df.drop("bookingID"))
+    prediction = predict_new_data(model, metadata, processed_df.drop("bookingid"))
     prediction_message = {
-        "bookingID": bookingID,
+        "bookingid": bookingID,
         "time": processed_df.select("time").first()[0],
         "label": int(prediction)
     }
@@ -119,12 +119,12 @@ def consume_messages(consumer, producer, model, metadata, spark):
     try:
         for message in consumer:
             data = message.value
-            bookingID = data["bookingID"]
+            bookingID = data["bookingid"]
             booking_timestamps[bookingID] = time.time()
 
             data_buffer[bookingID].append(data)
 
-            print(f"Received data for bookingID: {bookingID}, buffer size: {len(data_buffer[bookingID])}")
+            # print(f"Received data for bookingid: {bookingID}, buffer size: {len(data_buffer[bookingID])}")
 
             # Trigger and slide window
             if len(data_buffer[bookingID]) == WINDOW_SIZE:
@@ -134,7 +134,7 @@ def consume_messages(consumer, producer, model, metadata, spark):
                 # Slide window by removing STEP_SIZE oldest records
                 data_buffer[bookingID] = deque(list(data_buffer[bookingID])[STEP_SIZE:])
 
-                print(f"Processing bookingID: {bookingID}, but now records count from {WINDOW_SIZE} to - {len(data_buffer[bookingID])}")
+                # print(f"Processing bookingid: {bookingID}, but now records count from {WINDOW_SIZE} to {len(data_buffer[bookingID])}")
 
                 process_and_predict(bookingID, needed_records, producer, model, metadata, spark)
                 
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     consumer = KafkaConsumer(
         KAFKA_TOPIC_INPUT,
         bootstrap_servers=[KAFKA_BROKER],
-        auto_offset_reset='earliest',
+        auto_offset_reset='latest',
         value_deserializer=lambda m: json.loads(m.decode('utf-8'))
     )
     producer = KafkaProducer(

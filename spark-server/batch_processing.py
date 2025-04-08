@@ -1,10 +1,10 @@
-import os
+import os, uvicorn
 from pyspark.sql import SparkSession
-import uvicorn
 from pydantic import BaseModel
 from fastapi import FastAPI
+from pyspark.sql.functions import col
 
-FAST_API_PORT = int(os.environ.get("FAST_API_BATCH_PORT", 8081))
+FAST_API_PORT = int(os.environ.get("FAST_API_BATCH_PORT", 8002))
 
 MINIO_ADDRESS = os.environ["MINIO_ADDRESS"]
 MINIO_PORT = os.environ["MINIO_PORT"]
@@ -16,14 +16,6 @@ POSTGRES_PORT = os.environ["POSTGRES_PORT"]
 POSTGRES_USER = os.environ["POSTGRES_USER"]
 POSTGRES_PASSWORD = os.environ["POSTGRES_PASSWORD"]
 
-
-<<<<<<<< HEAD:spark-server/batch_processing.py
-========
-KAFKA_BROKER = os.environ["KAFKA_BROKER"]
-KAFKA_TOPIC = os.environ["KAFKA_TOPIC_BATCH"]
-
-
->>>>>>>> 50ca974 (feat: fix the issues in streaming):spark-server/batch-processing.py
 print("Starting PySpark with MinIO")
 
     # Create a Spark session
@@ -40,7 +32,10 @@ def minio_to_postgres(filepath):
         .getOrCreate()
     # Example: Reading from and writing to MinIO
     df = spark.read.csv(f"s3a://{filepath}", header=True, inferSchema=True)
-    # df= df.withColumnRenamed("bookingId", "booking_id")
+
+
+    df = df.select([col(c).alias(c.lower()) for c in df.columns])
+
     # Define PostgreSQL connection properties
     jdbc_url = f"jdbc:postgresql://{POSTGRES_ADDRESS}:{POSTGRES_PORT}/postgres"
     connection_properties = {
