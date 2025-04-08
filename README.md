@@ -7,11 +7,11 @@
 ├──- docker-compose.yml              Docker compose file to start up all application containers
 ├──- docker-compose-storage.yml      Docker compose file to start up all storage containers
 🗂️── backend                         FastAPI server to serve data to frontend
-🗂️── batch-processing                Batch processing using PySpark
 🗂️── consumer                        Consumer application code
 🗂️── data                            Store data to be used for application (Would be made avaiable upon startup of MinIO)
 🗂️── frontend                        Frontend for visualizing insights on telematics data and ride safety
 🗂️── producer                        Producer application code
+🗂️── spark-server                    Spark server to run Spark jobs
 ```
 ## Getting Started
 
@@ -20,9 +20,15 @@ Ensure that docker is already installed.
 
 You will need to build the following images in their respective folders:
 
-```sh
+```sh 
+# backend image (run in backend folder)
+docker build -t backend .
+
 # consumer image (run in consumer folder)
 docker build -t consumer .
+
+# frontend image (run in frontend folder)
+docker build -t frontend .
 
 # producer image (run in producer folder)
 docker build -t producer .
@@ -30,14 +36,8 @@ docker build -t producer .
 # batch-processing image (run in batch-processing folder)
 docker build -t batch-processing .
 
-# frontend image (run in frontend folder)
-docker build -t frontend .
-
-# backend image (run in backend folder)
-docker build -t backend .
-
-# sparkml image (run in sparkml folder)
-docker build -t sparkml .
+# batch-processing image (run in spark-server folder)
+docker build -t spark-server .
 ```
 
 Start all services with:
@@ -71,19 +71,31 @@ pip install -r requirements.txt
 
 ### Services
 
-| Service Name                | Description                                                    | URL                   | Notes                                                             |
-|-----------------------------|----------------------------------------------------------------|-----------------------|-------------------------------------------------------------------|
-| Postgres                    | Database storage for application                               | http://localhost:8080 | Login details found in docker-compose-storage.yml                 |
-| MinIO                       | Object storage (S3 compatible)                                 | http://localhost:9090 | Webpage access to view and configurate MinIO                      |
-| MinIO Client                | MinIO API calls                                                | http://localhost:9000 | No webpage access but used for application to access the content. |
-| Kafdrop                     | Kafka UI for checking topics & messages                        | http://localhost:9001 |                                                                   |
-| Backend                     | FastAPI backend to serve API endpoints                         | http://localhost:8000 | For displaying telematics data on frontend                        |
-| Frontend                    | React frontend                                                 | http://localhost:3000 | Frontend to display telematics data                               |  
-| Batch Ingestion of Raw Data | Service to carry out ingestion of raw data from files in minio | http://localhost:8081 | Called when in need to ingest raw files into the system           |  
-| Telematics consolidation    | Service to carry out telematics consolidation of rides         | http://localhost:8082 | Called periodically to consolidate ride information captured      |  
-  
+| Service Name                                 | Description                                                    | URL                   | Notes                                                             |
+|----------------------------------------------|----------------------------------------------------------------|-----------------------|-------------------------------------------------------------------|
+| Postgres                                     | Database storage for application                               | http://localhost:8080 | Login details found in docker-compose-storage.yml                 |
+| MinIO                                        | Object storage (S3 compatible)                                 | http://localhost:9090 | Webpage access to view and configurate MinIO                      |
+| MinIO Client                                 | MinIO API calls                                                | http://localhost:9000 | No webpage access but used for application to access the content. |
+| Kafdrop                                      | Kafka UI for checking topics & messages                        | http://localhost:9001 |                                                                   |
+| Backend                                      | FastAPI backend to serve API endpoints                         | http://localhost:8000 | For displaying telematics data on frontend                        |
+| Frontend                                     | React frontend                                                 | http://localhost:3000 | Frontend to display telematics data                               |  
+| Producer                                     | Sample Service to simulate live data flowing in                | http://localhost:8001 | Called when in need to simulate live data                         |  
+| **PySpark**-<br/>Batch Ingestion of Raw Data | Service to carry out ingestion of raw data from files in minio | http://localhost:8002 | Called when in need to ingest raw files into the system           |  
+| **PySpark**-<br/>Telematics consolidation    | Service to carry out telematics consolidation of rides         | http://localhost:8003 | Called periodically to consolidate ride information captured      |  
+
+## Kafka Topics
+
+| Topic name | Description                                                                                                | 
+|------------|------------------------------------------------------------------------------------------------------------|
+| live       | live data used for frontend display                                                                        |
+| streaming  | live data received from source, modules should receive and process this data for prediction and/or storage | 
+| prediction | prediction results from ML models                                                                          | 
+
 ## Data
 
+KAFKA_TOPIC_LIVE=live
+KAFKA_TOPIC_STREAMING=streaming
+KAFKA_TOPIC_PREDICTION=prediction
 The data labels and data dictionary can be found in the `/data` folder.
 ```
 ├──- labels.csv                Labels for driving trips safety
