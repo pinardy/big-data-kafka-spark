@@ -33,9 +33,6 @@ docker build -t frontend .
 # producer image (run in producer folder)
 docker build -t producer .
 
-# batch-processing image (run in batch-processing folder)
-docker build -t batch-processing .
-
 # batch-processing image (run in spark-server folder)
 docker build -t spark-server .
 ```
@@ -93,9 +90,6 @@ pip install -r requirements.txt
 
 ## Data
 
-KAFKA_TOPIC_LIVE=live
-KAFKA_TOPIC_STREAMING=streaming
-KAFKA_TOPIC_PREDICTION=prediction
 The data labels and data dictionary can be found in the `/data` folder.
 ```
 ├──- labels.csv                Labels for driving trips safety
