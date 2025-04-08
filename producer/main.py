@@ -18,12 +18,15 @@ data_file_path = "./part-00000-e6120af0-10c2-4248-97c4-81baf4304e5c-c000.csv"
 # Simulating streaming data from a CSV file (using pandas)
 df = pd.read_csv(data_file_path)
 
+# lower case all column names
+df.columns = df.columns.str.lower()
+
 # Sort data by "bookingID" and "second" for grouping trips in order of occurrence
-df = df.sort_values(by=["bookingID", "second"])
+df = df.sort_values(by=["bookingid", "second"])
 
 # Group by "bookingID" and collect the records as a list of dictionaries
 grouped_data = (
-    df.groupby("bookingID")
+    df.groupby("bookingid")
     .apply(lambda x: x.to_dict(orient="records"))
     .to_dict()
 )
@@ -39,10 +42,10 @@ def create_producer(broker):
 
 async def send_message(producer, topic, message):
     try:
-        print(f"Sent: bookingID: {message.get('bookingID')}, 'second': {message.get('second')}", flush=True)
+        print(f"Sent: bookingid: {message.get('bookingid')}, 'second': {message.get('second')}", flush=True)
 
         # For demo purposes of live streaming of bookingID 0 to backend
-        if (message.get('bookingID') == 0):
+        if (message.get('bookingid') == 0):
             await asyncio.to_thread(producer.send, KAFKA_LIVE_DATA_TOPIC, message)
 
         # For data ingestion
@@ -108,4 +111,5 @@ async def stream_trips():
 # Shutdown hook to close the Kafka producer
 @app.on_event("shutdown")
 def shutdown_event(producer: KafkaProducer):
+    print(" --[ Kafka producer closed ]-- ")
     producer.close()

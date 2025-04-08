@@ -3,11 +3,11 @@ from kafka import KafkaConsumer
 from postgres_util import get_connection, ingest_raw_data
 
 KAFKA_BROKER = os.environ["KAFKA_BROKER"]
-KAFKA_TOPIC = os.environ["KAFKA_TOPIC"]
+KAFKA_TOPIC = os.environ["KAFKA_INGESTION_TOPIC"]
 
 # For running script locally
 # KAFKA_BROKER = "localhost:9092"
-# KAFKA_TOPIC = "test"
+# KAFKA_TOPIC = "prediction"
 
 def create_consumer(broker, topic):
     try:
@@ -15,7 +15,7 @@ def create_consumer(broker, topic):
         consumer = KafkaConsumer(
             topic,
             bootstrap_servers=[broker],
-            auto_offset_reset='earliest',  # Read messages from the beginning of the topic
+            auto_offset_reset='latest', # Start reading at the latest message
             value_deserializer=lambda m: json.loads(m.decode('utf-8'))  # Deserialize bytes into JSON
         )
         print("Connected to Kafka broker successfully")
@@ -31,7 +31,7 @@ def consume_messages(consumer):
         conn, cursor = get_connection()
 
         for message in consumer:
-            print(f"Received message: Booking ID: {message.value['bookingID']}, Second: {message.value['second']}")
+            print(f"Received message: Booking ID: {message.value['bookingid']}, Second: {message.value['second']}")
             ingest_raw_data(conn, cursor, message.value)
     except KeyboardInterrupt:
         print("Stopped consuming messages")

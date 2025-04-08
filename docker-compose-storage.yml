@@ -3,12 +3,12 @@ services:
     image: quay.io/minio/minio:latest
     container_name: minio
     ports:
-      - "9000:9000"  # S3 API
-      - "9090:9090"  # Web UI
+      - "9000:9000" # S3 API
+      - "9090:9090" # Web UI
     env_file:
       - .env
     volumes:
-      - minio_data:/data  # Persist data between container restarts
+      - minio_data:/data # Persist data between container restarts
     command: server --console-address ":9090" /data
 
   minio-client:
@@ -47,7 +47,7 @@ services:
     depends_on:
       - postgres
     volumes:
-      - ./data:/data  # Mount data & script inside the container
+      - ./data:/data # Mount data & script inside the container
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_DB: postgres
@@ -72,3 +72,7 @@ volumes:
   minio_data:
     driver: local
   postgres_data:
+
+networks:
+  postgres_network:
+    name: postgres_network # Must match the PySpark network
