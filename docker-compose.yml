@@ -4,13 +4,12 @@ services:
     container_name: consumer
     environment:
       KAFKA_BROKER: kafka:9092
-      KAFKA_TOPIC: streaming
+      KAFKA_INGESTION_TOPIC: streaming
       POSTGRES_DB: postgres
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      KAFKA_INGESTION_TOPIC: streaming
     depends_on:
       kafka:
         condition: service_healthy
