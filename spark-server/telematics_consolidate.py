@@ -64,12 +64,9 @@ def telematics_consolidation(command):
     )
     
     # Feature engineering
-    interval = 20
-    # Assign interval buckets
-    bucketed_df = postgres_df.withColumn("interval_bucket", F.floor(F.col("second") / interval) * interval)
-
+    
     # Compute magnitudes
-    df = bucketed_df.withColumn("accel_mag", F.sqrt(F.col("acceleration_x")**2 +
+    df = postgres_df.withColumn("accel_mag", F.sqrt(F.col("acceleration_x")**2 +
                                                 F.col("acceleration_y")**2 +
                                                 F.col("acceleration_z")**2)) \
                 .withColumn("gyro_mag", F.sqrt(F.col("gyro_x")**2 +
@@ -77,7 +74,7 @@ def telematics_consolidation(command):
                                                F.col("gyro_z")**2))
            
     # Aggregate per interval
-    aggregated_df = df.groupBy("bookingid", "interval_bucket").agg(
+    aggregated_df = df.groupBy("bookingid").agg(
         F.mean("speed").alias("avg_speed"),
         F.stddev("speed").alias("std_speed"),
         
@@ -120,7 +117,6 @@ def telematics_consolidation(command):
     df_combined = aggregated_df.join(labels_df, "bookingid", "left")
     
     df_combined = df_combined.fillna(0.0)
-    df_combined = df_combined.drop("interval_bucket")
 
     returnString = f"Completed {command} - {df_combined.count()} record done"
     ## read to telematics

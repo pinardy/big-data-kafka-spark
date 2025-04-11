@@ -29,7 +29,7 @@ EOF
 echo "Creating telematics table"
 PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<EOF
 CREATE TABLE IF NOT EXISTS telematics (
-    bookingid BIGINT,
+    bookingid BIGINT PRIMARY KEY,
     avg_speed FLOAT NOT NULL,
     std_speed FLOAT NOT NULL,
     avg_accel_mag FLOAT NOT NULL,
@@ -55,9 +55,7 @@ CREATE TABLE IF NOT EXISTS telematics (
     avg_accuracy FLOAT NOT NULL,
     std_accuracy FLOAT NOT NULL,
     second FLOAT,
-    label INTEGER,
-
-    PRIMARY KEY (bookingid, second)
+    label INTEGER
 );
 EOF
 

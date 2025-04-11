@@ -89,7 +89,7 @@ def train_model():
     # Preprocessing: Assemble features into a single vector
     feature_columns = [
         "avg_gyro_mag", "avg_speed", "std_gyro_z", "max_accel_z",
-        "std_accel_y", "std_accel_z", "std_gyro_x", "avg_accel_z", "avg_accel_y"
+        "std_accel_y", "std_accel_z", "std_gyro_x", "avg_accel_z", "avg_accel_y", "second"
     ]
     assembler = VectorAssembler(inputCols=feature_columns, outputCol="features")
     df = assembler.transform(df)

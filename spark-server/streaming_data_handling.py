@@ -3,6 +3,8 @@ from pyspark.sql.functions import col, stddev, max, sqrt, mean
 from kafka import KafkaConsumer, KafkaProducer
 import os, json, time, uvicorn
 from fastapi import FastAPI
+from pydantic import BaseModel
+
 from collections import defaultdict, deque
 
 from pyspark.ml.classification import RandomForestClassificationModel
@@ -181,9 +183,9 @@ def consume_messages(consumer, producer, model, metadata, spark):
         consumer.close()
         producer.close()
 
-def start_streaming():
+def start_streaming(modelid):
     
-    print(f"==================== START STREAMING ====================")
+    print(f"==================== START STREAMING FOR MODEL {modelid} ====================")
     
     print("Listening for streaming data...")
     consumer = KafkaConsumer(
@@ -217,15 +219,18 @@ def start_streaming():
 
     return returnString
 
-# app = FastAPI()
+app = FastAPI()
 
-# @app.post("/streaming")
-# async def predict():
-#     result = start_streaming()
-#     return {"status": "success", "message": f"{result}"}
+class Item(BaseModel):
+    modelid: str
+
+@app.post("/streaming")
+async def predict(data: Item):
+    result = start_streaming(data.modelid)
+    return {"status": "success", "message": f"{result}"}
 
 # Main function
 if __name__ == "__main__":
-    # uvicorn.run("streaming_data_handling:app", host="0.0.0.0", port=FAST_API_PORT, reload=True)    
-    result = start_streaming()
-    print(f"Streaming process finished: {result}")
+    uvicorn.run("streaming_data_handling:app", host="0.0.0.0", port=FAST_API_PORT, reload=True)    
+    # result = start_streaming()
+    # print(f"Streaming process finished: {result}")
