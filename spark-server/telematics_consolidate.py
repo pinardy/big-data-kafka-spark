@@ -1,7 +1,6 @@
 import os, uvicorn
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.functions import count, col
 from pydantic import BaseModel
 from fastapi import FastAPI
 
@@ -27,9 +26,9 @@ db_properties = {
 }
 
 def removeDuplicate(df):
-    a_counts = df.groupBy("bookingID").agg(count("*").alias("cnt"))
+    a_counts = df.groupBy("bookingID").agg(F.count("*").alias("cnt"))
 
-    unique_a = a_counts.filter(col("cnt") == 1).select("bookingID")
+    unique_a = a_counts.filter(F.col("cnt") == 1).select("bookingID")
 
     return df.join(unique_a, on="bookingID", how="inner")
 
@@ -47,6 +46,8 @@ def telematics_consolidation(command):
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
         .config("spark.hadoop.fs.s3a.path.style.access", "true") \
         .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false") \
+        .config("spark.sql.adaptive.enabled", "true") \
+        .config("spark.dynamicAllocation.enabled", "false") \
         .getOrCreate()
 
 
@@ -61,23 +62,65 @@ def telematics_consolidation(command):
         table=sql,
         properties=db_properties
     )
+    
+    # Feature engineering
+    interval = 20
+    # Assign interval buckets
+    bucketed_df = postgres_df.withColumn("interval_bucket", F.floor(F.col("second") / interval) * interval)
 
-    # use spark to aggregate the neccessary data
-    aggregated_df = postgres_df.groupBy("bookingid").agg(
-        F.percentile("speed", 0.7).alias("speed_perc70"),
-        F.min("acceleration_x").alias("acceleration_x_min"),
-        F.stddev("acceleration_z").alias("acceleration_z_std"),
-        F.stddev("bearing").alias("bearing_std"),
-        F.stddev("acceleration_x").alias("acceleration_x_std"),
-        F.stddev("speed").alias("speed_std"),
-        F.stddev("acceleration_y").alias("acceleration_y_std"),
-        F.max("acceleration_z").alias("acceleration_z_max"),
-        F.max("speed").alias("speed_max"),
-        F.max("second").alias("time"),
+    # Compute magnitudes
+    df = bucketed_df.withColumn("accel_mag", F.sqrt(F.col("acceleration_x")**2 +
+                                                F.col("acceleration_y")**2 +
+                                                F.col("acceleration_z")**2)) \
+                .withColumn("gyro_mag", F.sqrt(F.col("gyro_x")**2 +
+                                               F.col("gyro_y")**2 +
+                                               F.col("gyro_z")**2))
+           
+    # Aggregate per interval
+    aggregated_df = df.groupBy("bookingid", "interval_bucket").agg(
+        F.mean("speed").alias("avg_speed"),
+        F.stddev("speed").alias("std_speed"),
+        
+        F.mean("accel_mag").alias("avg_accel_mag"),
+        F.max("accel_mag").alias("max_accel_mag"),
+        F.stddev("accel_mag").alias("std_accel_mag"),
+        
+        F.mean("gyro_mag").alias("avg_gyro_mag"),
+        F.stddev("gyro_mag").alias("std_gyro_mag"),
+        
+        F.mean("acceleration_x").alias("avg_accel_x"),
+        F.stddev("acceleration_x").alias("std_accel_x"),
+        F.max("acceleration_x").alias("max_accel_x"),
+        
+        F.mean("acceleration_y").alias("avg_accel_y"),
+        F.stddev("acceleration_y").alias("std_accel_y"),
+        F.max("acceleration_y").alias("max_accel_y"),
+        
+        F.mean("acceleration_z").alias("avg_accel_z"),
+        F.stddev("acceleration_z").alias("std_accel_z"),
+        F.max("acceleration_z").alias("max_accel_z"),
+        
+        F.mean("gyro_x").alias("avg_gyro_x"),
+        F.stddev("gyro_x").alias("std_gyro_x"),
+        
+        F.mean("gyro_y").alias("avg_gyro_y"),
+        F.stddev("gyro_y").alias("std_gyro_y"),
+        
+        F.mean("gyro_z").alias("avg_gyro_z"),
+        F.stddev("gyro_z").alias("std_gyro_z"),
+        
+        F.mean("accuracy").alias("avg_accuracy"),
+        F.stddev("accuracy").alias("std_accuracy"),
+        
+        F.max("second").alias("second"),
     )
+    
     # Combine label to aggregated_df
     aggregated_df.show()
     df_combined = aggregated_df.join(labels_df, "bookingid", "left")
+    
+    df_combined = df_combined.fillna(0.0)
+    df_combined = df_combined.drop("interval_bucket")
 
     returnString = f"Completed {command} - {df_combined.count()} record done"
     ## read to telematics

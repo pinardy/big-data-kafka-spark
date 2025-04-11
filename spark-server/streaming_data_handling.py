@@ -1,12 +1,15 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, stddev, min, max
+from pyspark.sql.functions import col, stddev, max, sqrt, mean
 from kafka import KafkaConsumer, KafkaProducer
-import os, json, time
+import os, json, time, uvicorn
+from fastapi import FastAPI
 from collections import defaultdict, deque
 
 from pyspark.ml.classification import RandomForestClassificationModel
 from pyspark.ml.feature import VectorAssembler
 from minio import Minio
+
+FAST_API_PORT = int(os.environ.get("FAST_API_MODEL_PREDICT_PORT", 8004))
 
 # MinIO Connection
 MINIO_ADDRESS = os.environ["MINIO_ADDRESS"]
@@ -29,10 +32,10 @@ def load_model_from_minio():
     )
     
     minio_bucket = "models"
-    minio_url = "s3a://models/sparkml_model"  # Adjust if needed
-    metadata_path = "rf_model/metadata.json"
+    minio_url = "s3a://models/sparkml_model_v1"  # Adjust if needed
+    metadata_path = "rf_model/metadata_v1.json"
 
-    local_metadata_path = "/tmp/model_metadata.json"
+    local_metadata_path = "/tmp/model_metadata_v1.json"
     
     try:
         # Download metadata
@@ -90,25 +93,57 @@ def cleanup_stale_records(producer, model, metadata, spark):
 # Process records and make predictions
 def process_and_predict(bookingID, records, producer, model, metadata, spark):
     df = spark.createDataFrame(records)
+    
+    # Calculate instantaneous magnitude features
+    df = df.withColumn("accel_mag", sqrt(col("acceleration_x")**2 + 
+                                        col("acceleration_y")**2 + 
+                                        col("acceleration_z")**2)) \
+           .withColumn("gyro_mag", sqrt(col("gyro_x")**2 + 
+                                      col("gyro_y")**2 + 
+                                      col("gyro_z")**2))
+    
     processed_df = df.groupBy("bookingid").agg(
-        max("speed").alias("speed_max"),
-        stddev("speed").alias("speed_std"),
-        min("acceleration_x").alias("acceleration_x_min"),
-        max("acceleration_z").alias("acceleration_z_max"),
-        stddev("acceleration_x").alias("acceleration_x_std"),
-        stddev("acceleration_y").alias("acceleration_y_std"),
-        stddev("acceleration_z").alias("acceleration_z_std"),
-        stddev("bearing").alias("bearing_std"),
-        max("second").alias("time"),
-        stddev("gyro_x").alias("gyro_x_std"),
-        stddev("gyro_y").alias("gyro_y_std"),
-        stddev("gyro_z").alias("gyro_z_std"),
-    ).withColumn("speed_perc70", col("speed_max") * 0.7)
+        mean("speed").alias("avg_speed"),
+        stddev("speed").alias("std_speed"),
+        
+        mean("accel_mag").alias("avg_accel_mag"),
+        max("accel_mag").alias("max_accel_mag"),
+        stddev("accel_mag").alias("std_accel_mag"),
+        
+        mean("gyro_mag").alias("avg_gyro_mag"),
+        stddev("gyro_mag").alias("std_gyro_mag"),
+        
+        mean("acceleration_x").alias("avg_accel_x"),
+        stddev("acceleration_x").alias("std_accel_x"),
+        max("acceleration_x").alias("max_accel_x"),
+        
+        mean("acceleration_y").alias("avg_accel_y"),
+        stddev("acceleration_y").alias("std_accel_y"),
+        max("acceleration_y").alias("max_accel_y"),
+        
+        mean("acceleration_z").alias("avg_accel_z"),
+        stddev("acceleration_z").alias("std_accel_z"),
+        max("acceleration_z").alias("max_accel_z"),
+        
+        mean("gyro_x").alias("avg_gyro_x"),
+        stddev("gyro_x").alias("std_gyro_x"),
+        
+        mean("gyro_y").alias("avg_gyro_y"),
+        stddev("gyro_y").alias("std_gyro_y"),
+        
+        mean("gyro_z").alias("avg_gyro_z"),
+        stddev("gyro_z").alias("std_gyro_z"),
+        
+        mean("accuracy").alias("avg_accuracy"),
+        stddev("accuracy").alias("std_accuracy"),
+        
+        max("second").alias("second"),
+    )
 
     prediction = predict_new_data(model, metadata, processed_df.drop("bookingid"))
     prediction_message = {
         "bookingid": bookingID,
-        "time": processed_df.select("time").first()[0],
+        "time": processed_df.select("second").first()[0],
         "label": int(prediction)
     }
     producer.send(KAFKA_TOPIC_OUTPUT, prediction_message)
@@ -146,8 +181,10 @@ def consume_messages(consumer, producer, model, metadata, spark):
         consumer.close()
         producer.close()
 
-# Main function
-if __name__ == "__main__":
+def start_streaming():
+    
+    print(f"==================== START STREAMING ====================")
+    
     print("Listening for streaming data...")
     consumer = KafkaConsumer(
         KAFKA_TOPIC_INPUT,
@@ -173,3 +210,22 @@ if __name__ == "__main__":
     model, metadata = load_model_from_minio()
         
     consume_messages(consumer, producer, model, metadata, spark)
+    returnString = "Streaming process started"
+    
+    print(f"===================={returnString} ====================")
+    spark.stop()
+
+    return returnString
+
+# app = FastAPI()
+
+# @app.post("/streaming")
+# async def predict():
+#     result = start_streaming()
+#     return {"status": "success", "message": f"{result}"}
+
+# Main function
+if __name__ == "__main__":
+    # uvicorn.run("streaming_data_handling:app", host="0.0.0.0", port=FAST_API_PORT, reload=True)    
+    result = start_streaming()
+    print(f"Streaming process finished: {result}")

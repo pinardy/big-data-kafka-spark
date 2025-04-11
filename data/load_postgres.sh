@@ -29,18 +29,35 @@ EOF
 echo "Creating telematics table"
 PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<EOF
 CREATE TABLE IF NOT EXISTS telematics (
-    bookingid BIGINT PRIMARY KEY,
-    speed_perc70 FLOAT,
-    acceleration_x_min FLOAT,
-    acceleration_z_std FLOAT,
-    bearing_std FLOAT,
-    acceleration_x_std FLOAT,
-    speed_std FLOAT,
-    acceleration_y_std FLOAT,
-    acceleration_z_max FLOAT,
-    speed_max FLOAT,
-    time FLOAT,
-    label INTEGER
+    bookingid BIGINT,
+    avg_speed FLOAT NOT NULL,
+    std_speed FLOAT NOT NULL,
+    avg_accel_mag FLOAT NOT NULL,
+    max_accel_mag FLOAT NOT NULL,
+    std_accel_mag FLOAT NOT NULL,
+    avg_gyro_mag FLOAT NOT NULL,
+    std_gyro_mag FLOAT NOT NULL,
+    avg_accel_x FLOAT NOT NULL,
+    std_accel_x FLOAT NOT NULL,
+    max_accel_x FLOAT NOT NULL,
+    avg_accel_y FLOAT NOT NULL,
+    std_accel_y FLOAT NOT NULL,
+    max_accel_y FLOAT NOT NULL,
+    avg_accel_z FLOAT NOT NULL,
+    std_accel_z FLOAT NOT NULL,
+    max_accel_z FLOAT NOT NULL,
+    avg_gyro_x FLOAT NOT NULL,
+    std_gyro_x FLOAT NOT NULL,
+    avg_gyro_y FLOAT NOT NULL,
+    std_gyro_y FLOAT NOT NULL,
+    avg_gyro_z FLOAT NOT NULL,
+    std_gyro_z FLOAT NOT NULL,
+    avg_accuracy FLOAT NOT NULL,
+    std_accuracy FLOAT NOT NULL,
+    second FLOAT,
+    label INTEGER,
+
+    PRIMARY KEY (bookingid, second)
 );
 EOF
 

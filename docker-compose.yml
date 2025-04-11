@@ -58,8 +58,8 @@ services:
       - SPARK_UI_PORT=8080
       - SPARK_RPC_AUTHENTICATION_ENABLED=false
     ports:
-      - "8089:8080"    # Spark UI
-      - "7077:7077"    # Spark Master port
+      - "8089:8080" # Spark UI
+      - "7077:7077" # Spark Master port
     volumes:
       - ./spark-server:/scripts
       - ./data:/data
@@ -67,7 +67,7 @@ services:
   # Spark Worker
   spark-worker:
     image: spark-server:latest
-#    container_name: spark-worker
+    #    container_name: spark-worker
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
@@ -90,10 +90,15 @@ services:
     ports:
       - "8002:8002"
       - "8003:8003"
+      - "8004:8004"
+      # - "8005:8005"
     environment:
       - SPARK_MASTER=spark://spark-master:7077
-      - SPARK_WORKER_CORES=1
-      - SPARK_WORKER_MEMORY=512m
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=4g
+      - SPARK_EXECUTOR_MEMORY=3g
+      - SPARK_DRIVER_MEMORY=2g
+      - SPARK_EXECUTOR_CORES=1
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_LOCAL_DIRS=/tmp/spark-temp
     env_file:
@@ -101,8 +106,12 @@ services:
     volumes:
       - ./spark-server:/scripts
       - ./data:/data
-    entrypoint: [ "/bin/bash", "-c", "while true; do echo 'starting script as backend tasks'; sh /scripts/spark_tasks.sh;sleep 1000; done" ]
-
+    entrypoint:
+      [
+        "/bin/bash",
+        "-c",
+        "while true; do echo 'starting script as backend tasks'; sh /scripts/spark_tasks.sh;sleep 3000; done",
+      ]
 
 volumes:
   minio_data:
