@@ -1,4 +1,4 @@
-import os, psycopg2, json, asyncio
+import os, psycopg2, json
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg2.extras import RealDictCursor
@@ -11,8 +11,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=["http://localhost:3000"],  # Frontend origin
-    allow_origins=["*"],  # Frontend origin
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
@@ -39,7 +38,6 @@ async def get_all_trips():
         # Query the telematics table
         cursor.execute("SELECT * FROM telematics;")
         rows = cursor.fetchall()
-        print(rows)
 
         # Close the connection
         cursor.close()

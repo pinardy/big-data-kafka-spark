@@ -18,7 +18,7 @@ POSTGRES_PASSWORD = os.environ["POSTGRES_PASSWORD"]
 
 print("Starting PySpark with MinIO")
 
-    # Create a Spark session
+# Create a Spark session
 def minio_to_postgres(filepath):
     print(f"====================START OF handling {filepath}====================")
     spark = SparkSession.builder \
@@ -33,7 +33,6 @@ def minio_to_postgres(filepath):
     # Example: Reading from and writing to MinIO
     df = spark.read.csv(f"s3a://{filepath}", header=True, inferSchema=True)
 
-
     df = df.select([col(c).alias(c.lower()) for c in df.columns])
 
     # Define PostgreSQL connection properties
@@ -47,11 +46,9 @@ def minio_to_postgres(filepath):
     # Write data into PostgreSQL table
     df.write.jdbc(url=jdbc_url, table="telematics_raw", mode="append", properties=connection_properties)
 
-
     spark.stop()
 
     print(f"====================COMPLETED of {filepath} ====================")
-
 
     return f"File {filepath} processed successfully."
 
