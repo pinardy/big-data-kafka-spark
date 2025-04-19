@@ -109,7 +109,7 @@ services:
       [
         "/bin/bash",
         "-c",
-        "while true; do echo 'starting script as backend tasks'; sh /scripts/spark_tasks.sh;sleep 3000; done",
+        "mkdir -p /tmp/mlflow_artifacts && while true; do echo 'starting script as backend tasks'; sh /scripts/spark_tasks.sh; sleep 3000; done",
       ]
 
   mlflow:

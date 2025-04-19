@@ -5,6 +5,7 @@ COPY requirements.txt .
 
 USER root
 RUN pip3 install -r requirements.txt
+RUN pip install pyspark pandas numpy mlflow boto3 psycopg2-binary
 
 
 RUN apt-get update && apt-get install -y curl
