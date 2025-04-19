@@ -10,7 +10,6 @@ import os, uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-
 import mlflow
 import mlflow.spark
 
@@ -35,9 +34,9 @@ MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow:5000"
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 mlflow.set_experiment("random_forest_training")
 
-# MODEL_NAME = "RandomForest_Telematic_TEST"
+MODEL_NAME = "RandomForest_Telematic"
 
-def train_model(modelname):
+def train_model():
     
     print("====================START OF TRAINING====================")
     
@@ -69,7 +68,7 @@ def train_model(modelname):
         "seed": 42,
         "training_data_count": train_data.count(),
         "testing_data_count": test_data.count(),
-        "model_name": modelname
+        "model_name": MODEL_NAME
     }
 
     with mlflow.start_run():
@@ -98,7 +97,7 @@ def train_model(modelname):
 
         # Log the model to MLflow
         mlflow.spark.log_model(
-            spark_model=rf_model, 
+            spark_model=rf_model,
             artifact_path="spark-rf-model",
             registered_model_name=modelname,  # Register the model with a name
         )
