@@ -15,7 +15,7 @@ def create_consumer(broker, topic):
         consumer = KafkaConsumer(
             topic,
             bootstrap_servers=[broker],
-            auto_offset_reset='latest', # Start reading at the latest message
+            auto_offset_reset='latest',
             value_deserializer=lambda m: json.loads(m.decode('utf-8'))  # Deserialize bytes into JSON
         )
         print("Connected to Kafka broker successfully")
@@ -27,11 +27,9 @@ def create_consumer(broker, topic):
 
 def consume_messages(consumer):
     try:
-        # Connect to PostgreSQL database
         conn, cursor = get_connection()
 
         for message in consumer:
-            # print(f"Received message: Booking ID: {message.value['bookingid']}, Second: {message.value['second']}")
             print(f"Received message: {message.value}")
             ingest_raw_data(conn, cursor, message.value)
     except KeyboardInterrupt:
