@@ -1,6 +1,8 @@
 import asyncio
 import os, json, time, uvicorn
+import threading
 
+from typing import Optional
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, stddev, max, sqrt, mean
 from kafka import KafkaConsumer, KafkaProducer
@@ -25,45 +27,105 @@ KAFKA_BROKER = os.environ["KAFKA_BROKER"]
 KAFKA_TOPIC_INPUT = os.environ["KAFKA_TOPIC_STREAMING"]
 KAFKA_TOPIC_OUTPUT = os.environ["KAFKA_TOPIC_PREDICTION"]
 
-## Common spark object
-def generateSparkSession():
-    active_spark = SparkSession.getActiveSession()
-    print(f"################## current spark session: {active_spark}")
+##### METHOD 1: with shared variable
+# shared_variable = {"model": None,"metadata":None}
+# shared_lock = threading.Lock()
+#
+# def get_model():
+#     global shared_variable
+#     with shared_lock:
+#         return shared_variable["model"], shared_variable["metadata"]
+# def set_model(model, metadata):
+#     global shared_variable
+#     with shared_lock:
+#         shared_variable["model"] = model
+#         shared_variable["metadata"] = metadata
 
-    if active_spark:
-        return active_spark
-    try:
-        return SparkSession.builder \
-            .appName("PySpark Streaming Processor") \
-            .config("spark.hadoop.fs.s3a.endpoint", f"http://{MINIO_ADDRESS}:{MINIO_PORT}") \
-            .config("spark.hadoop.fs.s3a.access.key", MINIO_USER) \
-            .config("spark.hadoop.fs.s3a.secret.key", MINIO_PASSWORD) \
-            .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
-            .config("spark.hadoop.fs.s3a.path.style.access", "true") \
-            .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false") \
-            .config("spark.sql.adaptive.enabled", "true") \
-            .config("spark.dynamicAllocation.enabled", "false") \
-            .getOrCreate()
-    except Exception as e:
-        print(f"Error creating Spark session: ,WHYYYYYYYYYYYYYYYYYYYYYYYYYYY")
-        return None
 
-## Common model,metadata object
-global_model = None
-global_metadata = None
-def set_model(model, metadata):
-    if  model is None:
-        return
-    global global_model
-    global global_metadata
-    print(f"######## SETTING MODEL: {model}, {metadata}")
-    global_model = model
-    global_metadata = metadata
+##### METHOD 2: with static method
+class SharedModel:
+    _instance = None
+    _lock = threading.Lock()
+
+    def __init__(self):
+        self.model = None
+        self.metadata = None
+
+    @staticmethod
+    def get_instance():
+        if SharedModel._instance is None:
+            with SharedModel._lock:
+                if SharedModel._instance is None:
+                    SharedModel._instance = SharedModel()
+        return SharedModel._instance
+
+    def get_model(self):
+        with SharedModel._lock:
+            return self.model, self.metadata
+
+    def set_model(self, model, metadata):
+        with SharedModel._lock:
+            self.model = model
+            self.metadata = metadata
+
 def get_model():
-    global global_model
-    global global_metadata
-    print(f"######## GETTING MODEL: {global_model}, {global_metadata}")
-    return global_model, global_metadata
+    return SharedModel.get_instance().get_model()
+
+def set_model(model, metadata):
+    SharedModel.get_instance().set_model(model, metadata)
+
+
+
+class SparkSessionSingleton:
+    _instance = None
+    _lock = threading.Lock()  # Lock to ensure thread-safe access
+    _lock2 = threading.Lock()  # Lock to ensure thread-safe access
+
+    @staticmethod
+    def get_instance():
+        with SparkSessionSingleton._lock:  # Ensure only one thread can access this block at a time
+            print(f"get instance: {SparkSessionSingleton._instance}")
+            if SparkSessionSingleton._instance is None:
+                SparkSessionSingleton._instance = SparkSession.builder \
+                .appName("PySpark Streaming Processor") \
+                .config("spark.hadoop.fs.s3a.endpoint", f"http://{MINIO_ADDRESS}:{MINIO_PORT}") \
+                .config("spark.hadoop.fs.s3a.access.key", MINIO_USER) \
+                .config("spark.hadoop.fs.s3a.secret.key", MINIO_PASSWORD) \
+                .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+                .config("spark.hadoop.fs.s3a.path.style.access", "true") \
+                .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false") \
+                .config("spark.sql.adaptive.enabled", "true") \
+                .config("spark.dynamicAllocation.enabled", "false") \
+                .getOrCreate()
+            print(f"THE END: get instance: {SparkSessionSingleton._instance}")
+        return SparkSessionSingleton._instance
+    #
+
+    ##### METHOD 3: trying to add model to spark session singleton
+    # _model = None
+    # _metadata = None
+    #
+    # @staticmethod
+    # def get_model():
+    #     with SparkSessionSingleton._lock2:  # Ensure only one thread can access this block at a time
+    #
+    #         print(f"GETTING MODEL: { SparkSessionSingleton._model}, {SparkSessionSingleton._metadata}")
+    #         return SparkSessionSingleton._model,SparkSessionSingleton._metadata
+    #
+    # @staticmethod
+    # def set_model(model, metadata):
+    #     print(f"SETTING MODEL WAS: { SparkSessionSingleton._model}, {SparkSessionSingleton._metadata}")
+    #     if model is None:
+    #         return
+    #     with SparkSessionSingleton._lock2:  # Ensure only one thread can access this block at a time
+    #
+    #         SparkSessionSingleton._model = model
+    #         SparkSessionSingleton._metadata = metadata
+    #         print(f"SETTING MODEL NOW: { SparkSessionSingleton._model}, {SparkSessionSingleton._metadata}")
+
+def generateSparkSession():
+   return SparkSessionSingleton.get_instance()
+
 # Load Model from MinIO
 def load_model_from_minio():
 
@@ -98,7 +160,6 @@ def load_model_from_minio():
         print(f"Loaded model from {minio_url} successfully")
 
         print(f"Model metadata: {metadata[f'feature_columns']}")
-        set_model(model, metadata)
         print(f"load model {model}, {metadata}")
         return model, metadata
 
@@ -109,9 +170,9 @@ def load_model_from_minio():
 def predict_new_data(new_data_df):
     # new_data_df.printSchema()
     model, metadata = get_model()
-    print(f"predict_new_data 1: {model}, {metadata}")
     if model is None:
         model, metadata = load_model_from_minio()
+        set_model(model, metadata)
 
     if model is None:
         return None
@@ -122,8 +183,6 @@ def predict_new_data(new_data_df):
 
     predict_result = model.transform(assembled_data)
 
-    # print("Predict result schema:")
-    # predict_result.printSchema()
     return predict_result.select("prediction").first()[0]
 
 # In-memory buffer for tracking records per bookingID
@@ -148,12 +207,10 @@ def cleanup_stale_records(producer):
 # Process records and make predictions
 def process_and_predict(bookingID, records, producer):
 
-    print("predict 1")
     spark = generateSparkSession()
 
     df = spark.createDataFrame(records)
 
-    print("predict 2")
     # Calculate instantaneous magnitude features
     df = df.withColumn("accel_mag", sqrt(col("acceleration_x")**2 +
                                         col("acceleration_y")**2 +
@@ -162,7 +219,7 @@ def process_and_predict(bookingID, records, producer):
                                       col("gyro_y")**2 +
                                       col("gyro_z")**2))
 
-    print("predict 3")
+
     processed_df = df.groupBy("bookingid").agg(
         mean("speed").alias("avg_speed"),
         stddev("speed").alias("std_speed"),
@@ -201,21 +258,20 @@ def process_and_predict(bookingID, records, producer):
         max("second").alias("second"),
     )
 
-    print("predict 4")
     prediction = predict_new_data(processed_df.drop("bookingid"))
-    print("predict 5")
+
     prediction_message = {
         "bookingid": bookingID,
         "time": processed_df.select("second").first()[0],
         "speed": processed_df.select("avg_speed").first()[0],
         "label": int(prediction)
     }
-    print("predict 6")
     producer.send(KAFKA_TOPIC_OUTPUT, prediction_message)
-    print(f"Sent prediction: {prediction_message}")
 
 # Kafka Consumer
 def consume_messages():
+    #CHECKER print(f"@@@@@@@@@@@@@@@@@@@@@@@@ global_item in consume_messages: {get_model()}")
+
     spark = None
     consumer = None
     producer = None
@@ -232,6 +288,8 @@ def consume_messages():
             value_serializer=lambda v: json.dumps(v).encode('utf-8')
         )
         for message in consumer:
+            #CHECKER print(f"@@@@@@@@@@@@@@@@@@@@@@@@ global_item in consume_messages2: {get_model()}")
+
             data = message.value
             bookingID = data["bookingid"]
             booking_timestamps[bookingID] = time.time()
@@ -266,7 +324,10 @@ def refresh_model(modelid):
 
     print(f"==================== refresh model: {modelid} ====================")
 
+    print(f"@@@@@@@@@@@@@@@@@@@@@@@@ global_item in fast api call: {get_model()}")
     model, metadata = load_model_from_minio()
+
+    set_model(model, metadata)
     returnString = f"refresh model: {modelid} - Completed"
 
     print(f"==================== {returnString} ====================")
@@ -275,74 +336,40 @@ def refresh_model(modelid):
 
 app = FastAPI()
 
-class Item(BaseModel):
+class post_item(BaseModel):
     modelid: str
 
 @app.post("/refresh_model")
-async def refresh_model_call(data: Item):
+async def refresh_model_call(data: post_item):
     result = refresh_model(data.modelid)
     return {"status": "success", "message": f"{result}"}
 
 @app.get("/")
 async def root():
     return {"message": "FastAPI server is running"}
-# Main function
-# if __name__ == "__main__":
-#     uvicorn.run("streaming_data_handling:app", host="0.0.0.0", port=FAST_API_PORT, reload=True)
-    # result = start_streaming()
-    # print(f"Streaming process finished: {result}")
-# Main function to run both entry points
-# Start FastAPI server
-async def start_fastapi():
+
+def start_fastapi():
     print(f"starting fast api server on port {FAST_API_PORT}...")
-    uvicorn.run("streaming_data_handling:app", host="0.0.0.0", port=FAST_API_PORT, reload=True)
-    # await asyncio.to_thread(uvicorn.run, "streaming_data_handling:app", host="0.0.0.0", port=8005, reload=True)
+    uvicorn.run("streaming_data_handling:app", host="0.0.0.0", port=FAST_API_PORT, reload=False)
 
-    print(f"starting fast api server on port {FAST_API_PORT}...Completed")
-    # try:
-    #
-    #     print(f"Starting FastAPI server on port {FAST_API_PORT}...")
-    #     config = uvicorn.Config("streaming_data_handling:app", host="0.0.0.0", port=FAST_API_PORT, reload=False)
-    #     server = uvicorn.Server(config)
-    #     print(f"Starting FastAPI server on port {FAST_API_PORT}... - start up success")
-    #     server.serve()
-    # except Exception as e:
-    #     print(f"Error starting FastAPI server: {e}")
+import threading
 
-
-async def start_kafka_consumer_task():
+def start_kafka_consumer_task():
     print(f"starting Kafka consumer...")
-    # consume_messages(model,metadata)
-    await asyncio.to_thread(consume_messages)
+    consume_messages()
 
-    print(f"starting Kafka consumer... Completed ")
+def main():
 
-async def main():
-    # Run Kafka consumer and FastAPI server concurrently
+    kafka_thread = threading.Thread(target=start_kafka_consumer_task,args=(), daemon=True)
+    fastapi_thread = threading.Thread(target=start_fastapi,args=(), daemon=True)
 
-    await asyncio.gather(
-        start_kafka_consumer_task(),
-        start_fastapi()
+    kafka_thread.start()
+    fastapi_thread.start()
 
-        # asyncio.to_thread(start_fastapi),
-    )
-    print("hehe")
-    # uvicorn.run("streaming_data_handling:app", host="0.0.0.0", port=FAST_API_PORT, reload=True)
-
-    print("hehe the end")
+    kafka_thread.join()
+    fastapi_thread.join()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
 
-import socket
-
-
-# def is_port_in_use(port):
-#     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-#         return s.connect_ex(("localhost", port)) == 0
-#
-#
-# print(f"is port in use 8004: {is_port_in_use(8003)}")
-# print(f"is port in use 8005: {is_port_in_use(8004)}")
-# print(f"is port in use 8006: {is_port_in_use(8005)}")
