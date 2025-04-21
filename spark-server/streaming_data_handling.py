@@ -74,7 +74,7 @@ def get_model():
 def set_model(model, metadata):
     SharedModel.get_instance().set_model(model, metadata)
 
-
+shared_model = SharedModel.get_instance()  # Initialize the singleton instance
 
 class SparkSessionSingleton:
     _instance = None
@@ -84,7 +84,6 @@ class SparkSessionSingleton:
     @staticmethod
     def get_instance():
         with SparkSessionSingleton._lock:  # Ensure only one thread can access this block at a time
-            print(f"get instance: {SparkSessionSingleton._instance}")
             if SparkSessionSingleton._instance is None:
                 SparkSessionSingleton._instance = SparkSession.builder \
                 .appName("PySpark Streaming Processor") \
@@ -97,7 +96,6 @@ class SparkSessionSingleton:
                 .config("spark.sql.adaptive.enabled", "true") \
                 .config("spark.dynamicAllocation.enabled", "false") \
                 .getOrCreate()
-            print(f"THE END: get instance: {SparkSessionSingleton._instance}")
         return SparkSessionSingleton._instance
     #
 
@@ -270,7 +268,7 @@ def process_and_predict(bookingID, records, producer):
 
 # Kafka Consumer
 def consume_messages():
-    #CHECKER print(f"@@@@@@@@@@@@@@@@@@@@@@@@ global_item in consume_messages: {get_model()}")
+    # CHECKER FOR MODEL print(f"@@@@@@@@@@@@@@@@@@@@@@@@ global_item in consume_messages: {get_model()}")
 
     spark = None
     consumer = None
@@ -288,7 +286,8 @@ def consume_messages():
             value_serializer=lambda v: json.dumps(v).encode('utf-8')
         )
         for message in consumer:
-            #CHECKER print(f"@@@@@@@@@@@@@@@@@@@@@@@@ global_item in consume_messages2: {get_model()}")
+            global shared_model
+            # CHECKER FOR MODEL print(f"@@@@@@@@@@@@@@@@@@@@@@@@ global_item in consume_messages loop: {get_model()}")
 
             data = message.value
             bookingID = data["bookingid"]
@@ -324,7 +323,9 @@ def refresh_model(modelid):
 
     print(f"==================== refresh model: {modelid} ====================")
 
-    print(f"@@@@@@@@@@@@@@@@@@@@@@@@ global_item in fast api call: {get_model()}")
+    global shared_model
+
+    # CHECKER FOR MODEL print(f"@@@@@@@@@@@@@@@@@@@@@@@@ global_item in fast api call: {get_model()}")
     model, metadata = load_model_from_minio()
 
     set_model(model, metadata)
@@ -344,14 +345,24 @@ async def refresh_model_call(data: post_item):
     result = refresh_model(data.modelid)
     return {"status": "success", "message": f"{result}"}
 
+thread = None
+## HACKY way to start kafka using the thread from fast api, so that both thread can share the variable
 @app.get("/")
 async def root():
+    global thread
+    if thread is None:
+        thread = threading.Thread(target=start_kafka_consumer_task, args=(), daemon=True)
+        thread.start()
+    # kafka_thread = threading.Thread(target=start_kafka_consumer_task,args=(), daemon=True)
+    # kafka_thread.start()
+    # kafka_thread.join()
     return {"message": "FastAPI server is running"}
 
 def start_fastapi():
     print(f"starting fast api server on port {FAST_API_PORT}...")
     uvicorn.run("streaming_data_handling:app", host="0.0.0.0", port=FAST_API_PORT, reload=False)
 
+    print(f"starting fast api server on port {FAST_API_PORT}...COMPLETED")
 import threading
 
 def start_kafka_consumer_task():
@@ -360,14 +371,14 @@ def start_kafka_consumer_task():
 
 def main():
 
-    kafka_thread = threading.Thread(target=start_kafka_consumer_task,args=(), daemon=True)
     fastapi_thread = threading.Thread(target=start_fastapi,args=(), daemon=True)
+    # kafka_thread = threading.Thread(target=start_kafka_consumer_task,args=(), daemon=True)
 
-    kafka_thread.start()
     fastapi_thread.start()
+    # kafka_thread.start()
 
-    kafka_thread.join()
     fastapi_thread.join()
+    # kafka_thread.join()
 
 
 if __name__ == "__main__":

@@ -7,3 +7,7 @@ spark-submit telematics_consolidate.py > /tmp/telematics_consolidate.log &
 spark-submit model_training.py > /tmp/model_training.log &
 
 spark-submit streaming_data_handling.py > /tmp/streaming_data_handling.log &
+
+sleep 10
+
+curl http://localhost:8005/ &
