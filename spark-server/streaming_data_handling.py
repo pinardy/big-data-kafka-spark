@@ -146,6 +146,7 @@ def process_and_predict(bookingID, records, producer, model, metadata, spark):
     prediction_message = {
         "bookingid": bookingID,
         "time": processed_df.select("second").first()[0],
+        "speed": processed_df.select("avg_speed").first()[0],
         "label": int(prediction)
     }
     producer.send(KAFKA_TOPIC_OUTPUT, prediction_message)
