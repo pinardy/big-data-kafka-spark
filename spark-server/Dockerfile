@@ -5,7 +5,6 @@ COPY requirements.txt .
 
 USER root
 RUN pip3 install -r requirements.txt
-RUN pip install pyspark pandas numpy
 
 
 RUN apt-get update && apt-get install -y curl
