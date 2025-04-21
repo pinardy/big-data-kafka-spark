@@ -1,36 +1,116 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useWebSocket } from './useWebsocket'
-import { styles } from './styles'
 
 const Trip = () => {
   const websocketUrl = 'ws://localhost:8000/ws/live-data'
 
-  useWebSocket(websocketUrl, (data) => {
-    console.log('Received data:', data)
+  const [latestData, setLatestData] = useState({
+    bookingid: '',
+    speed: 0,
+    time: '',
+    label: null,
   })
+
+  // 模拟 label 的交替（如果后端不推送 label）
+  useEffect(() => {
+    let toggle = 0
+    const interval = setInterval(() => {
+      setLatestData((prevData) => ({
+        ...prevData,
+        label: toggle,
+      }))
+      toggle = toggle === 0 ? 1 : 0
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // 接收 WebSocket 数据（如果后端推送 label，会覆盖掉模拟值）
+  useWebSocket(websocketUrl, (data) => {
+    try {
+      const parsed = typeof data === 'string' ? JSON.parse(data) : data
+      console.log('Parsed data:', parsed)
+
+      setLatestData((prev) => ({
+        ...prev,
+        bookingid: parsed.bookingid || prev.bookingid,
+        speed: parsed.speed || prev.speed,
+        time: parsed.time || prev.time,
+        label: parsed.label !== undefined ? parsed.label : prev.label,
+      }))
+    } catch (err) {
+      console.error('Error parsing websocket data:', err)
+    }
+  })
+
+  const { bookingid, speed, time, label } = latestData
 
   return (
     <div style={styles.container}>
-      <header style={styles.header}>
-        <h1 style={styles.title}>Grab Trip</h1>
-      </header>
-      <main style={styles.main}>
-        <section style={styles.tripDetails}>
-          <h2 style={styles.sectionTitle}>Trip Details</h2>
-          <p>Pickup: 123 Main Street</p>
-          <p>Destination: 456 Elm Street</p>
-          <p>Fare: $15.00</p>
-        </section>
-        <section style={styles.driverDetails}>
-          <h2 style={styles.sectionTitle}>Driver Details</h2>
-          <p>Name: John Doe</p>
-          <p>Car: Toyota Prius</p>
-          <p>License Plate: ABC-1234</p>
-        </section>
-        <button style={styles.button}>Contact Driver</button>
-      </main>
+      <h1 style={styles.title}>🚗 Grab Trip</h1>
+
+      <div style={styles.card}>
+        <h2 style={styles.sectionTitle}>Trip Info</h2>
+        <p>
+          🆔 Booking ID: <strong>{bookingid || '—'}</strong>
+        </p>
+        <p>
+          ⏱️ Time: <strong>{time || '—'}</strong>
+        </p>
+        <p>
+          💨 Speed: <strong>{typeof speed === 'number' ? speed.toFixed(2) : '0.00'} km/h</strong>
+        </p>
+      </div>
+
+      {label !== null && (
+        <div
+          style={{
+            ...styles.statusBar,
+            backgroundColor: label === 0 ? '#2ecc71' : '#e74c3c',
+          }}
+        >
+          {label === 0 ? '✅ Normal Trip' : '⚠️ Potential Issue Detected'}
+        </div>
+      )}
     </div>
   )
+}
+
+const styles = {
+  container: {
+    maxWidth: '600px',
+    margin: '2rem auto',
+    padding: '2rem',
+    backgroundColor: '#f9f9f9',
+    borderRadius: '16px',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+  },
+  title: {
+    textAlign: 'center',
+    fontSize: '2rem',
+    marginBottom: '2rem',
+    color: '#27ae60',
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: '12px',
+    padding: '1.2rem',
+    marginBottom: '1.5rem',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+  },
+  sectionTitle: {
+    fontSize: '1.2rem',
+    marginBottom: '0.8rem',
+    color: '#2c3e50',
+  },
+  statusBar: {
+    marginTop: '1.5rem',
+    padding: '1rem',
+    color: '#fff',
+    fontWeight: 'bold',
+    borderRadius: '8px',
+    textAlign: 'center',
+  },
 }
 
 export default Trip

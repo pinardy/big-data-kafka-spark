@@ -29,6 +29,8 @@ const Charts = React.lazy(() => import('./views/charts/Charts'))
 
 const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 
+const Trip = React.lazy(() => import('./views/pages/trip/Trip'))
+
 const routes = [
   { path: '/', exact: true, name: 'Home' },
   { path: '/dashboard', name: 'Dashboard', element: Dashboard },
@@ -56,6 +58,7 @@ const routes = [
   { path: '/buttons/button-groups', name: 'Button Groups', element: ButtonGroups },
   { path: '/charts', name: 'Charts', element: Charts },
   { path: '/widgets', name: 'Widgets', element: Widgets },
+  { path: '/trip', name: 'Trip', element: Trip },
 ]
 
 export default routes
