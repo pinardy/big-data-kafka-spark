@@ -8,6 +8,8 @@ from pyspark.ml.evaluation import BinaryClassificationEvaluator
 
 import os, uvicorn
 from fastapi import FastAPI
+from pydantic import BaseModel
+
 
 import mlflow
 import mlflow.spark
@@ -33,9 +35,9 @@ MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow:5000"
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 mlflow.set_experiment("random_forest_training")
 
-MODEL_NAME = "RandomForest_Telematic"
+# MODEL_NAME = "RandomForest_Telematic_TEST"
 
-def train_model():
+def train_model(modelname):
     
     print("====================START OF TRAINING====================")
     
@@ -64,7 +66,10 @@ def train_model():
         "model_type": "RandomForestClassifier",
         "num_trees": 50,
         "max_depth": 10,
-        "seed": 42
+        "seed": 42,
+        "training_data_count": train_data.count(),
+        "testing_data_count": test_data.count(),
+        "model_name": modelname
     }
 
     with mlflow.start_run():
@@ -95,7 +100,7 @@ def train_model():
         mlflow.spark.log_model(
             spark_model=rf_model, 
             artifact_path="spark-rf-model",
-            registered_model_name=MODEL_NAME
+            registered_model_name=modelname,  # Register the model with a name
         )
 
         print(f"Model AUC: {auc}")
@@ -107,9 +112,12 @@ def train_model():
 
 app = FastAPI()
 
+class ModelRequest(BaseModel):
+    modelname: str
+
 @app.post("/train")
-async def predict():
-    result = train_model()
+async def train(req: ModelRequest):
+    result = train_model(req.modelname)
 
     return {"status": "success", "message": f"{result}"}
 

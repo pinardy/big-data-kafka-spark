@@ -34,6 +34,7 @@ KAFKA_TOPIC_OUTPUT = os.environ["KAFKA_TOPIC_PREDICTION"]
 MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow:5000")
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 ALIAS_NAME = "Champion"
+MODEL_NAME = "RandomForest_Telematic"
 
 ##### METHOD 1: with shared variable
 # shared_variable = {"model": None,"metadata":None}
@@ -176,7 +177,7 @@ def predict_new_data(new_data_df):
     # new_data_df.printSchema()
     model, metadata = get_model()
     if model is None:
-        model, metadata = load_model_from_mlflow(asdasd)
+        model, metadata = load_model_from_mlflow(MODEL_NAME)
         set_model(model, metadata)
 
     if model is None:
@@ -267,8 +268,7 @@ def process_and_predict(bookingID, records, producer):
         max("second").alias("second"),
     )
 
-    prediction = predict_new_data(processed_df.drop("bookingid"))
-
+    prediction = predict_new_data( processed_df.drop("bookingid"))
     prediction_message = {
         "bookingid": bookingID,
         "time": processed_df.select("second").first()[0],
@@ -331,17 +331,18 @@ def consume_messages():
         if producer is not None:
             producer.close()
 
-def refresh_model(modelid):
+def refresh_model(modelname):
+    global MODEL_NAME
+    MODEL_NAME = modelname
 
-    print(f"==================== refresh model: {modelid} ====================")
-
+    print(f"==================== refresh model: {MODEL_NAME} ====================")
     global shared_model
 
     # CHECKER FOR MODEL print(f"@@@@@@@@@@@@@@@@@@@@@@@@ global_item in fast api call: {get_model()}")
-    model, metadata = load_model_from_minio()
+    model, metadata = load_model_from_mlflow(MODEL_NAME)
 
     set_model(model, metadata)
-    returnString = f"refresh model: {modelid} - Completed"
+    returnString = f"refresh model: {MODEL_NAME} - Completed"
 
     print(f"==================== {returnString} ====================")
 
@@ -354,7 +355,7 @@ class post_item(BaseModel):
 
 @app.post("/refresh_model")
 async def refresh_model_call(data: post_item):
-    result = refresh_model(data.modelid)
+    result = refresh_model(data.modelname)
     return {"status": "success", "message": f"{result}"}
 
 thread = None
