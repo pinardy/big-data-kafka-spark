@@ -11,7 +11,6 @@ const Trip = () => {
     label: null,
   })
 
-  // 模拟 label 的交替（如果后端不推送 label）
   useEffect(() => {
     let toggle = 0
     const interval = setInterval(() => {
@@ -25,7 +24,6 @@ const Trip = () => {
     return () => clearInterval(interval)
   }, [])
 
-  // 接收 WebSocket 数据（如果后端推送 label，会覆盖掉模拟值）
   useWebSocket(websocketUrl, (data) => {
     try {
       const parsed = typeof data === 'string' ? JSON.parse(data) : data
@@ -69,7 +67,7 @@ const Trip = () => {
             backgroundColor: label === 0 ? '#2ecc71' : '#e74c3c',
           }}
         >
-          {label === 0 ? '✅ Normal Trip' : '⚠️ Potential Issue Detected'}
+          {label === 0 ? '✅ Continue driving safely!' : '⚠️ You are driving too fast!'}
         </div>
       )}
     </div>
