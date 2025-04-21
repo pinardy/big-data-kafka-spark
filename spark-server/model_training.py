@@ -36,7 +36,7 @@ mlflow.set_experiment("random_forest_training")
 
 MODEL_NAME = "RandomForest_Telematic"
 
-def train_model():
+def train_model(modelname):
     
     print("====================START OF TRAINING====================")
     
@@ -68,7 +68,7 @@ def train_model():
         "seed": 42,
         "training_data_count": train_data.count(),
         "testing_data_count": test_data.count(),
-        "model_name": MODEL_NAME
+        "model_name": modelname
     }
 
     with mlflow.start_run():
@@ -97,7 +97,7 @@ def train_model():
 
         # Log the model to MLflow
         mlflow.spark.log_model(
-            spark_model=rf_model,
+            spark_model=rf_model, 
             artifact_path="spark-rf-model",
             registered_model_name=modelname,  # Register the model with a name
         )
