@@ -9,10 +9,13 @@ from kafka import KafkaConsumer, KafkaProducer
 from fastapi import FastAPI
 from pydantic import BaseModel
 from collections import defaultdict, deque
-from minio import Minio
 
 from pyspark.ml.classification import RandomForestClassificationModel
 from pyspark.ml.feature import VectorAssembler
+
+import mlflow
+import mlflow.spark
+from mlflow.tracking import MlflowClient
 
 FAST_API_PORT = int(os.environ.get("FAST_API_MODEL_PREDICT_PORT", 8005))
 
@@ -26,6 +29,12 @@ MINIO_PASSWORD = os.environ["MINIO_PASSWORD"]
 KAFKA_BROKER = os.environ["KAFKA_BROKER"]
 KAFKA_TOPIC_INPUT = os.environ["KAFKA_TOPIC_STREAMING"]
 KAFKA_TOPIC_OUTPUT = os.environ["KAFKA_TOPIC_PREDICTION"]
+
+# MLflow config
+MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow:5000")
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+ALIAS_NAME = "champion"
+MODEL_NAME = "RandomForest_Telematic"
 
 ##### METHOD 1: with shared variable
 # shared_variable = {"model": None,"metadata":None}
@@ -125,63 +134,67 @@ def generateSparkSession():
    return SparkSessionSingleton.get_instance()
 
 # Load Model from MinIO
-def load_model_from_minio():
+def load_model_from_mlflow(modelname):
+    client = MlflowClient()
 
+    # === Step 1: Try to get model version by alias ===
     try:
-        print(f"load model")
-
-        minio_client = Minio(
-            f"{MINIO_ADDRESS}:{MINIO_PORT}",
-            access_key=MINIO_USER,
-            secret_key=MINIO_PASSWORD,
-            secure=False
-        )
-
-        minio_bucket = "models"
-        minio_url = "s3a://models/sparkml_model_v1"  # Adjust if needed
-        metadata_path = "rf_model/metadata_v1.json"
-
-        local_metadata_path = "/tmp/model_metadata_v1.json"
-
-        # Download metadata
-        minio_client.fget_object(minio_bucket, metadata_path, local_metadata_path)
-        print(f"---- Downloaded metadata from {metadata_path} to {local_metadata_path}")
-
-        with open(local_metadata_path, "r") as f:
-            metadata = json.load(f)
-        print(f"Loaded metadata from {local_metadata_path} successfully")
-        # Ensure SparkSession is initialized
-        spark = generateSparkSession()
-        print(f"GENERATED SPARK SESSION: {spark}")
-
-        model = RandomForestClassificationModel.load(minio_url)
-        print(f"Loaded model from {minio_url} successfully")
-
-        print(f"Model metadata: {metadata[f'feature_columns']}")
-        print(f"load model {model}, {metadata}")
-        return model, metadata
-
+        model_version = client.get_model_version_by_alias(modelname, ALIAS_NAME)
+        run_id = model_version.run_id
+        version = model_version.version
+        print(f"[INFO] Found alias '{ALIAS_NAME}' for model '{modelname}': version={version}, run_id={run_id}")
     except Exception as e:
-        print(f"Error loading model: {str(e)}")
-        return None, None
+        # Fallback: Get the latest version instead
+        print(f"[WARN] Alias '{ALIAS_NAME}' not found. Falling back to latest registered version.")
+        versions = client.search_model_versions(f"name='{modelname}'")
+        if not versions:
+            raise RuntimeError(f"No versions found for model '{modelname}'.")
+        latest_version_info = sorted(versions, key=lambda v: int(v.version), reverse=True)[0]
+        version = latest_version_info.version
+        run_id = latest_version_info.run_id
+        print(f"[INFO] Fallback to version={version}, run_id={run_id}")
+
+    # === Step 2: Load the model ===
+    model_uri = f"models:/{modelname}/{version}"
+    model = mlflow.spark.load_model(model_uri)
+    print(f"[INFO] Model loaded from URI: {model_uri}")
+
+    # Step 3: Download and load metadata
+    local_dir = "/tmp/mlflow_artifacts"
+    os.makedirs(local_dir, exist_ok=True)
+
+    metadata_path = client.download_artifacts(run_id, "model_metadata_v1.json", local_dir)
+    with open(metadata_path, "r") as f:
+        metadata = json.load(f)
+
+    print("[INFO] Loaded model metadata:")
+    print(json.dumps(metadata, indent=2))
+
+    return model, metadata
+
 # Predict New Data
 def predict_new_data(new_data_df):
     # new_data_df.printSchema()
     model, metadata = get_model()
     if model is None:
-        model, metadata = load_model_from_minio()
+        model, metadata = load_model_from_mlflow(MODEL_NAME)
         set_model(model, metadata)
 
     if model is None:
         return None
 
-    feature_columns = [col for col in new_data_df.columns if col != "label"]
+    # feature_columns = [col for col in new_data_df.columns if col != "label"]
+    feature_columns = metadata.get("feature_columns")
+    if not feature_columns:
+        raise ValueError("Feature columns missing in model metadata.")
+
     assembler = VectorAssembler(inputCols=feature_columns, outputCol="features")
     assembled_data = assembler.transform(new_data_df)
 
     predict_result = model.transform(assembled_data)
 
     return predict_result.select("prediction").first()[0]
+
 
 # In-memory buffer for tracking records per bookingID
 data_buffer = defaultdict(deque)  # Stores up to 15 records per bookingID
@@ -213,51 +226,49 @@ def process_and_predict(bookingID, records, producer):
     df = df.withColumn("accel_mag", sqrt(col("acceleration_x")**2 +
                                         col("acceleration_y")**2 +
                                         col("acceleration_z")**2)) \
-           .withColumn("gyro_mag", sqrt(col("gyro_x")**2 +
-                                      col("gyro_y")**2 +
+           .withColumn("gyro_mag", sqrt(col("gyro_x")**2 + 
+                                      col("gyro_y")**2 + 
                                       col("gyro_z")**2))
-
-
+    
     processed_df = df.groupBy("bookingid").agg(
         mean("speed").alias("avg_speed"),
         stddev("speed").alias("std_speed"),
-
+        
         mean("accel_mag").alias("avg_accel_mag"),
         max("accel_mag").alias("max_accel_mag"),
         stddev("accel_mag").alias("std_accel_mag"),
-
+        
         mean("gyro_mag").alias("avg_gyro_mag"),
         stddev("gyro_mag").alias("std_gyro_mag"),
-
+        
         mean("acceleration_x").alias("avg_accel_x"),
         stddev("acceleration_x").alias("std_accel_x"),
         max("acceleration_x").alias("max_accel_x"),
-
+        
         mean("acceleration_y").alias("avg_accel_y"),
         stddev("acceleration_y").alias("std_accel_y"),
         max("acceleration_y").alias("max_accel_y"),
-
+        
         mean("acceleration_z").alias("avg_accel_z"),
         stddev("acceleration_z").alias("std_accel_z"),
         max("acceleration_z").alias("max_accel_z"),
-
+        
         mean("gyro_x").alias("avg_gyro_x"),
         stddev("gyro_x").alias("std_gyro_x"),
-
+        
         mean("gyro_y").alias("avg_gyro_y"),
         stddev("gyro_y").alias("std_gyro_y"),
-
+        
         mean("gyro_z").alias("avg_gyro_z"),
         stddev("gyro_z").alias("std_gyro_z"),
-
+        
         mean("accuracy").alias("avg_accuracy"),
         stddev("accuracy").alias("std_accuracy"),
-
+        
         max("second").alias("second"),
     )
 
-    prediction = predict_new_data(processed_df.drop("bookingid"))
-
+    prediction = predict_new_data( processed_df.drop("bookingid"))
     prediction_message = {
         "bookingid": bookingID,
         "time": processed_df.select("second").first()[0],
@@ -265,6 +276,7 @@ def process_and_predict(bookingID, records, producer):
         "label": int(prediction)
     }
     producer.send(KAFKA_TOPIC_OUTPUT, prediction_message)
+    print(f"Sent prediction: {prediction_message}")
 
 # Kafka Consumer
 def consume_messages():
@@ -319,17 +331,18 @@ def consume_messages():
         if producer is not None:
             producer.close()
 
-def refresh_model(modelid):
+def refresh_model(modelname):
+    global MODEL_NAME
+    MODEL_NAME = modelname
 
-    print(f"==================== refresh model: {modelid} ====================")
-
+    print(f"==================== refresh model: {MODEL_NAME} ====================")
     global shared_model
 
     # CHECKER FOR MODEL print(f"@@@@@@@@@@@@@@@@@@@@@@@@ global_item in fast api call: {get_model()}")
-    model, metadata = load_model_from_minio()
+    model, metadata = load_model_from_mlflow(MODEL_NAME)
 
     set_model(model, metadata)
-    returnString = f"refresh model: {modelid} - Completed"
+    returnString = f"refresh model: {MODEL_NAME} - Completed"
 
     print(f"==================== {returnString} ====================")
 
@@ -338,11 +351,11 @@ def refresh_model(modelid):
 app = FastAPI()
 
 class post_item(BaseModel):
-    modelid: str
+    modelname: str
 
 @app.post("/refresh_model")
 async def refresh_model_call(data: post_item):
-    result = refresh_model(data.modelid)
+    result = refresh_model(data.modelname)
     return {"status": "success", "message": f"{result}"}
 
 thread = None

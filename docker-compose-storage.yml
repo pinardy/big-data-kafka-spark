@@ -27,6 +27,7 @@ services:
       sleep 2;
       done
       && mc mb --ignore-existing myminio/bigdata
+      && mc mb --ignore-existing myminio/mlflow-artifacts
       && mc cp -r /data/* myminio/bigdata/"
 
   postgres:

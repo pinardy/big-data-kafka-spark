@@ -4,19 +4,17 @@ from pyspark.sql import SparkSession
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.classification import RandomForestClassifier
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+from pyspark.ml.evaluation import BinaryClassificationEvaluator
 
 import os, uvicorn
 from fastapi import FastAPI
+from pydantic import BaseModel
 
-from minio import Minio
+
+import mlflow
+import mlflow.spark
 
 FAST_API_PORT = int(os.environ.get("FAST_API_MODEL_TRAINING_PORT", 8004))
-
-# MinIO Connection
-MINIO_ADDRESS = os.environ["MINIO_ADDRESS"]
-MINIO_PORT = os.environ["MINIO_PORT"]
-MINIO_USER = os.environ["MINIO_USER"]
-MINIO_PASSWORD = os.environ["MINIO_PASSWORD"]
 
 # PostgreSQL Connection
 POSTGRES_ADDRESS = os.environ["POSTGRES_ADDRESS"]
@@ -32,48 +30,14 @@ db_properties = {
     "driver": "org.postgresql.Driver"
 }
 
-def upload_model(model):
-    
-    print("====================START OF UPLOADING====================")
-    
-    # Upload the model to MinIO
-    minio_client = Minio(
-        f"{MINIO_ADDRESS}:{MINIO_PORT}",
-        access_key=MINIO_USER,
-        secret_key=MINIO_PASSWORD,
-        secure=False    # set to True if using HTTPS
-    )
+# MLflow config
+MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow:5000")
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+mlflow.set_experiment("random_forest_training")
 
-    # Define bucket and model path
-    bucket_name = "models"
-    model_path = "/tmp/random-forest-model/v1"
-    model_file_name = "sparkml_model_v1"
+# MODEL_NAME = "RandomForest_Telematic_TEST"
 
-    # Save the Spark ML model locally
-    model.write().overwrite().save(model_path)
-
-    # Ensure the bucket exists
-    if not minio_client.bucket_exists(bucket_name):
-        minio_client.make_bucket(bucket_name)
-        print(f"Created bucket: {bucket_name}")
-
-    # Upload all model files to MinIO
-    for root, _, files in os.walk(model_path):
-        for file in files:
-            file_path = os.path.join(root, file)
-            object_name = os.path.relpath(file_path, model_path).replace("\\", "/")  # Fix path for Windows/Linux
-            minio_client.fput_object(bucket_name, f"{model_file_name}/{object_name}", file_path) # Upload model files
-            print(f"Uploaded: {file_path} -> {model_file_name}/{object_name}")
-            minio_client.fput_object(
-                bucket_name,
-                "rf_model/metadata_v1.json",
-                "/tmp/model_metadata_v1.json"
-            ) # Upload metadata
-            print(f"Uploaded: /tmp/model_metadata_v1.json -> rf_model/metadata_v1.json")
-
-    print("Model uploaded to MinIO successfully.")
-
-def train_model():
+def train_model(modelname):
     
     print("====================START OF TRAINING====================")
     
@@ -102,42 +66,58 @@ def train_model():
         "model_type": "RandomForestClassifier",
         "num_trees": 50,
         "max_depth": 10,
-        "seed": 42
+        "seed": 42,
+        "training_data_count": train_data.count(),
+        "testing_data_count": test_data.count(),
+        "model_name": modelname
     }
 
-    with open("/tmp/model_metadata_v1.json", "w") as f:
-        json.dump(model_info, f)
+    with mlflow.start_run():
+        mlflow.log_params(model_info)
 
-    # Define Random Forest model
-    rf = RandomForestClassifier(
-        labelCol="label", 
-        featuresCol="features", 
-        numTrees=100,
-        maxDepth=10,
-        seed=42
-    )
-    rf_model = rf.fit(train_data)
+        rf = RandomForestClassifier(
+            labelCol="label",
+            featuresCol="features",
+            numTrees=100,
+            maxDepth=10,
+            seed=42
+        )
+        rf_model = rf.fit(train_data)
 
-    # Evaluate the model
-    predictions = rf_model.transform(test_data)
-    evaluator = MulticlassClassificationEvaluator(labelCol="label", predictionCol="prediction", metricName="accuracy")
-    accuracy = evaluator.evaluate(predictions)
-    print(f"Model Accuracy: {accuracy}")
-    
-    upload_model(rf_model)
-    
-    print("==================== TRAINING & UPLOADING COMPLETED ====================")
-    spark.stop()
-    
-    returnStr = f"Model trained and uploaded successfully with accuracy: {accuracy}"
-    return returnStr
+        predictions = rf_model.transform(test_data)
+        evaluator = BinaryClassificationEvaluator(labelCol="label", rawPredictionCol="rawPrediction", metricName="areaUnderROC")
+        auc = evaluator.evaluate(predictions)
+
+        mlflow.log_metric("AUC", auc)
+
+        # Save metadata file to disk and log as artifact
+        metadata_path = "/tmp/model_metadata_v1.json"
+        with open(metadata_path, "w") as f:
+            json.dump(model_info, f)
+        mlflow.log_artifact(metadata_path)
+
+        # Log the model to MLflow
+        mlflow.spark.log_model(
+            spark_model=rf_model, 
+            artifact_path="spark-rf-model",
+            registered_model_name=modelname,  # Register the model with a name
+        )
+
+        print(f"Model AUC: {auc}")
+        print("==================== TRAINING & LOGGING COMPLETED ====================")
+        spark.stop()
+
+    return f"Model trained and logged to MLflow with AUC: {auc}"
 
 
 app = FastAPI()
 
+class ModelRequest(BaseModel):
+    modelname: str
+
 @app.post("/train")
-async def predict():
-    result = train_model()
+async def train(req: ModelRequest):
+    result = train_model(req.modelname)
 
     return {"status": "success", "message": f"{result}"}
 
