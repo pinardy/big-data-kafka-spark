@@ -12,3 +12,5 @@ __pycache__/
 # raw data
 part-00000-*.csv
 part-00001-*.csv
+
+feature_engineering_exp/data/*.csv
