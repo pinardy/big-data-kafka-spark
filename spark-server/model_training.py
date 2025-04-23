@@ -10,7 +10,6 @@ import os, uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-
 import mlflow
 import mlflow.spark
 
@@ -35,89 +34,97 @@ MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow:5000"
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 mlflow.set_experiment("random_forest_training")
 
-# MODEL_NAME = "RandomForest_Telematic_TEST"
+MODEL_NAME = "RandomForest_Telematic"
 
-def train_model(modelname):
+def train_model(modelname: str, feature_columns: list[str]):
+    print(f"====================START OF TRAINING MODEL {modelname}====================")
     
-    print("====================START OF TRAINING====================")
-    
-    # Initialize Spark session
     spark = SparkSession.builder \
         .appName("RandomForestModelTraining") \
         .getOrCreate()
 
-    # Load data from PostgreSQL table
-    df = spark.read.jdbc(url=jdbc_url, table="telematics", properties=db_properties)
-    print(f"Load data from PostgreSQL table: {df.count()} rows loaded.")
+    try:
+        # Load data from PostgreSQL table
+        df = spark.read.jdbc(url=jdbc_url, table="telematics", properties=db_properties)
+        print(f"Load data from PostgreSQL table: {df.count()} rows loaded.")
 
-    # Preprocessing: Assemble features into a single vector
-    feature_columns = [
-        "avg_gyro_mag", "avg_speed", "std_gyro_z", "max_accel_z",
-        "std_accel_y", "std_accel_z", "std_gyro_x", "avg_accel_z", "avg_accel_y", "second"
-    ]
-    assembler = VectorAssembler(inputCols=feature_columns, outputCol="features")
-    df = assembler.transform(df)
+        # Verify all requested columns exist in the dataframe
+        missing_cols = [col for col in feature_columns if col not in df.columns]
+        if missing_cols:
+            raise ValueError(f"Columns not found in data: {missing_cols}")
 
-    # Split data into training and testing sets
-    train_data, test_data = df.randomSplit([0.7, 0.3], seed=42)
+        # Preprocessing: Assemble features into a single vector
+        assembler = VectorAssembler(inputCols=feature_columns, outputCol="features")
+        df = assembler.transform(df)
 
-    model_info = {
-        "feature_columns": feature_columns,
-        "model_type": "RandomForestClassifier",
-        "num_trees": 50,
-        "max_depth": 10,
-        "seed": 42,
-        "training_data_count": train_data.count(),
-        "testing_data_count": test_data.count(),
-        "model_name": modelname
-    }
+        # Split data
+        train_data, test_data = df.randomSplit([0.7, 0.3], seed=42)
 
-    with mlflow.start_run():
-        mlflow.log_params(model_info)
+        model_info = {
+            "feature_columns": feature_columns,
+            "model_type": "RandomForestClassifier",
+            "num_trees": 100,
+            "max_depth": 10,
+            "seed": 42,
+            "training_data_count": train_data.count(),
+            "testing_data_count": test_data.count(),
+            "model_name": modelname
+        }
 
-        rf = RandomForestClassifier(
-            labelCol="label",
-            featuresCol="features",
-            numTrees=100,
-            maxDepth=10,
-            seed=42
-        )
-        rf_model = rf.fit(train_data)
+        with mlflow.start_run():
+            mlflow.log_params(model_info)
 
-        predictions = rf_model.transform(test_data)
-        evaluator = BinaryClassificationEvaluator(labelCol="label", rawPredictionCol="rawPrediction", metricName="areaUnderROC")
-        auc = evaluator.evaluate(predictions)
+            rf = RandomForestClassifier(
+                labelCol="label",
+                featuresCol="features",
+                numTrees=100,
+                maxDepth=10,
+                seed=42
+            )
+            rf_model = rf.fit(train_data)
 
-        mlflow.log_metric("AUC", auc)
+            predictions = rf_model.transform(test_data)
+            evaluator = BinaryClassificationEvaluator(
+                labelCol="label",
+                rawPredictionCol="rawPrediction",
+                metricName="areaUnderROC"
+            )
+            auc = evaluator.evaluate(predictions)
+            mlflow.log_metric("AUC", auc)
 
-        # Save metadata file to disk and log as artifact
-        metadata_path = "/tmp/model_metadata_v1.json"
-        with open(metadata_path, "w") as f:
-            json.dump(model_info, f)
-        mlflow.log_artifact(metadata_path)
+            # Save metadata
+            metadata_path = "/tmp/model_metadata.json"
+            with open(metadata_path, "w") as f:
+                json.dump(model_info, f)
+            mlflow.log_artifact(metadata_path)
 
-        # Log the model to MLflow
-        mlflow.spark.log_model(
-            spark_model=rf_model, 
-            artifact_path="spark-rf-model",
-            registered_model_name=modelname,  # Register the model with a name
-        )
+            # Log the model
+            mlflow.spark.log_model(
+                spark_model=rf_model, 
+                artifact_path="spark-rf-model",
+                registered_model_name=modelname,
+            )
 
-        print(f"Model AUC: {auc}")
-        print("==================== TRAINING & LOGGING COMPLETED ====================")
+            print(f"Model AUC: {auc}")
+            print("==================== TRAINING COMPLETED ====================")
+            
+            return {"status": "success", "auc": auc, "features_used": feature_columns}
+            
+    except Exception as e:
+        print(f"Training failed: {str(e)}")
+        return {"status": "error", "message": str(e)}
+    finally:
         spark.stop()
-
-    return f"Model trained and logged to MLflow with AUC: {auc}"
-
 
 app = FastAPI()
 
 class ModelRequest(BaseModel):
-    modelname: str
+    modelname: str  # Model name from request
+    feature_columns: list[str]  # Dynamic feature columns from request
 
 @app.post("/train")
 async def train(req: ModelRequest):
-    result = train_model(req.modelname)
+    result = train_model(req.modelname, req.feature_columns)
 
     return {"status": "success", "message": f"{result}"}
 
