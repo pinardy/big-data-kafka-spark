@@ -47,6 +47,25 @@ async def get_all_trips():
     except Exception as e:
         return {"error": str(e)}
     
+@app.get("/trip/{trip_id}")
+async def get_trip_info(trip_id):
+    try:
+        # Connect to the database
+        conn, cursor = get_connection()
+
+        # Query the telematics table
+        cursor.execute("SELECT * FROM telematics WHERE trip_id = %s;", (trip_id,))
+        rows = cursor.fetchall()
+
+        # Close the connection
+        cursor.close()
+        conn.close()
+
+        return rows
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # Websocket for live streaming data to frontend
 @app.websocket("/ws/live-data")
 async def websocket_endpoint(websocket: WebSocket):

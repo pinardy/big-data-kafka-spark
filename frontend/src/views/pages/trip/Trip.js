@@ -53,10 +53,10 @@ const Trip = () => {
           🆔 Booking ID: <strong>{bookingid || '—'}</strong>
         </p>
         <p>
-          ⏱️ Time: <strong>{time || '—'}</strong>
+          ⏱️ Time: <strong>{time || '—'} s</strong>
         </p>
         <p>
-          💨 Speed: <strong>{typeof speed === 'number' ? speed.toFixed(2) : '0.00'} km/h</strong>
+          💨 Speed: <strong>{typeof speed === 'number' ? speed.toFixed(2) : '0.00'} m/s</strong>
         </p>
       </div>
 
