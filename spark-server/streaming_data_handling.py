@@ -33,7 +33,7 @@ KAFKA_TOPIC_OUTPUT = os.environ["KAFKA_TOPIC_PREDICTION"]
 # MLflow config
 MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow:5000")
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-ALIAS_NAME = "Champion"
+ALIAS_NAME = "champion"
 MODEL_NAME = "RandomForest_Telematic"
 
 ##### METHOD 1: with shared variable
@@ -351,7 +351,7 @@ def refresh_model(modelname):
 app = FastAPI()
 
 class post_item(BaseModel):
-    modelid: str
+    modelname: str
 
 @app.post("/refresh_model")
 async def refresh_model_call(data: post_item):
