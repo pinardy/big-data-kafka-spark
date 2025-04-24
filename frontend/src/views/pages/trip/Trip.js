@@ -45,7 +45,7 @@ const Trip = () => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>🚗 Grab Trip</h1>
+      <h1 style={styles.title}>🚗 Barg Trip</h1>
 
       <div style={styles.card}>
         <h2 style={styles.sectionTitle}>Trip Info</h2>
