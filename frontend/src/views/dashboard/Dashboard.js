@@ -39,6 +39,7 @@ const Dashboard = () => {
   }, [fetchTripData])
 
   const handleTripLabel = () => {
+    // count total safe and dangerous trips
     const safeTrips = data.filter((trip) => trip.label == 0)
     const dangerousTrips = data.filter((trip) => trip.label == 1)
     setTotalSafe(safeTrips.length)
@@ -46,7 +47,7 @@ const Dashboard = () => {
   }
 
   const handleTripSpeed = () => {
-    // Calculate different speed
+    // count different ranges of speed
     const Trips5 = data.filter((trip) => trip.avg_speed > 0 && trip.avg_speed <= 5).length
     const Trips10 = data.filter((trip) => trip.avg_speed > 5 && trip.avg_speed <= 10).length
     const Trips15 = data.filter((trip) => trip.avg_speed > 10 && trip.avg_speed <= 15).length
@@ -63,7 +64,7 @@ const Dashboard = () => {
   }
 
   const handleTripSecond = () => {
-    // Calculate different second
+    // count different ranges of standard deviation for speed
     const TripsSed600 = data.filter((trip) => trip.second > 0 && trip.second <= 600).length
     const TripsSed1800 = data.filter((trip) => trip.second > 600 && trip.second <= 1800).length
     const TripsSedMore = data.filter((trip) => trip.second > 1800).length
@@ -71,7 +72,6 @@ const Dashboard = () => {
   }
 
   useEffect(() => {
-    // Calculate total safe and dangerous trips
     handleTripLabel()
     handleTripSpeed()
     handleTripSecond()
