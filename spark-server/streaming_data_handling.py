@@ -168,7 +168,7 @@ def load_model_from_mlflow(modelname):
     local_dir = "/tmp/mlflow_artifacts"
     os.makedirs(local_dir, exist_ok=True)
 
-    metadata_path = client.download_artifacts(run_id, "model_metadata_v1.json", local_dir)
+    metadata_path = client.download_artifacts(run_id, "model_metadata.json", local_dir)
     with open(metadata_path, "r") as f:
         metadata = json.load(f)
 

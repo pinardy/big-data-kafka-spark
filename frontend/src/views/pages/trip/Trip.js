@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useWebSocket } from './useWebsocket'
+import useWebSocket from 'react-use-websocket'
 
 const Trip = () => {
   const websocketUrl = 'ws://localhost:8000/ws/live-data'
@@ -11,35 +11,31 @@ const Trip = () => {
     label: null,
   })
 
-  useEffect(() => {
-    let toggle = 0
-    const interval = setInterval(() => {
-      setLatestData((prevData) => ({
-        ...prevData,
-        label: toggle,
-      }))
-      toggle = toggle === 0 ? 1 : 0
-    }, 2000)
-
-    return () => clearInterval(interval)
-  }, [])
-
-  useWebSocket(websocketUrl, (data) => {
-    try {
-      const parsed = typeof data === 'string' ? JSON.parse(data) : data
-      console.log('Parsed data:', parsed)
-
-      setLatestData((prev) => ({
-        ...prev,
-        bookingid: parsed.bookingid || prev.bookingid,
-        speed: parsed.speed || prev.speed,
-        time: parsed.time || prev.time,
-        label: parsed.label !== undefined ? parsed.label : prev.label,
-      }))
-    } catch (err) {
-      console.error('Error parsing websocket data:', err)
-    }
+  const { lastMessage } = useWebSocket(websocketUrl, {
+    shouldReconnect: () => true,
+    reconnectAttempts: 10,
+    reconnectInterval: 5000,
   })
+
+  // Handle incoming WebSocket messages
+  useEffect(() => {
+    if (lastMessage !== null) {
+      try {
+        const parsed = JSON.parse(lastMessage.data)
+        console.log('Parsed data:', parsed)
+
+        setLatestData((prev) => ({
+          ...prev,
+          bookingid: parsed.bookingid || prev.bookingid,
+          speed: parsed.speed || prev.speed,
+          time: parsed.time || prev.time,
+          label: parsed.label !== undefined ? parsed.label : prev.label,
+        }))
+      } catch (err) {
+        console.error('Error parsing websocket data:', err)
+      }
+    }
+  }, [lastMessage])
 
   const { bookingid, speed, time, label } = latestData
 
