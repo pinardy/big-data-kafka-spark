@@ -2,7 +2,7 @@ import os, psycopg2, json
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg2.extras import RealDictCursor
-from kafka import KafkaConsumer
+from aiokafka import AIOKafkaConsumer
 
 KAFKA_BROKER = os.environ["KAFKA_BROKER"]
 KAFKA_TOPIC = os.environ["KAFKA_TOPIC"]
@@ -71,16 +71,18 @@ async def get_trip_info(trip_id):
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     try:
-        consumer = KafkaConsumer(
+        consumer = AIOKafkaConsumer(
             os.environ["KAFKA_TOPIC"],
             bootstrap_servers=[os.environ["KAFKA_BROKER"]],
             auto_offset_reset='earliest',
             value_deserializer=lambda m: json.loads(m.decode('utf-8'))
         )
+        await consumer.start()
 
-        for message in consumer:
-            await websocket.send_json(message.value)
+        while True:
+            async for message in consumer:
+                await websocket.send_json(message.value)
     except WebSocketDisconnect:
         print("WebSocket client disconnected")
     finally:
-        consumer.close()
+        await consumer.stop()
