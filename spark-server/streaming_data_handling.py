@@ -1,8 +1,5 @@
-import asyncio
-import os, json, time, uvicorn
-import threading
+import os, json, time, uvicorn, threading
 
-from typing import Optional
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, stddev, max, sqrt, mean
 from kafka import KafkaConsumer, KafkaProducer
@@ -10,7 +7,6 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from collections import defaultdict, deque
 
-from pyspark.ml.classification import RandomForestClassificationModel
 from pyspark.ml.feature import VectorAssembler
 
 import mlflow
@@ -33,28 +29,8 @@ KAFKA_TOPIC_OUTPUT = os.environ["KAFKA_TOPIC_PREDICTION"]
 # MLflow config
 MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow:5000")
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-ALIAS_NAME = "Champion"
-
-# MLflow config
-MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow:5000")
-mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 ALIAS_NAME = "champion"
 MODEL_NAME = "RandomForest_Telematic"
-
-##### METHOD 1: with shared variable
-# shared_variable = {"model": None,"metadata":None}
-# shared_lock = threading.Lock()
-#
-# def get_model():
-#     global shared_variable
-#     with shared_lock:
-#         return shared_variable["model"], shared_variable["metadata"]
-# def set_model(model, metadata):
-#     global shared_variable
-#     with shared_lock:
-#         shared_variable["model"] = model
-#         shared_variable["metadata"] = metadata
-
 
 ##### METHOD 2: with static method
 class SharedModel:
@@ -111,34 +87,11 @@ class SparkSessionSingleton:
                 .config("spark.dynamicAllocation.enabled", "false") \
                 .getOrCreate()
         return SparkSessionSingleton._instance
-    #
 
-    ##### METHOD 3: trying to add model to spark session singleton
-    # _model = None
-    # _metadata = None
-    #
-    # @staticmethod
-    # def get_model():
-    #     with SparkSessionSingleton._lock2:  # Ensure only one thread can access this block at a time
-    #
-    #         print(f"GETTING MODEL: { SparkSessionSingleton._model}, {SparkSessionSingleton._metadata}")
-    #         return SparkSessionSingleton._model,SparkSessionSingleton._metadata
-    #
-    # @staticmethod
-    # def set_model(model, metadata):
-    #     print(f"SETTING MODEL WAS: { SparkSessionSingleton._model}, {SparkSessionSingleton._metadata}")
-    #     if model is None:
-    #         return
-    #     with SparkSessionSingleton._lock2:  # Ensure only one thread can access this block at a time
-    #
-    #         SparkSessionSingleton._model = model
-    #         SparkSessionSingleton._metadata = metadata
-    #         print(f"SETTING MODEL NOW: { SparkSessionSingleton._model}, {SparkSessionSingleton._metadata}")
 
 def generateSparkSession():
    return SparkSessionSingleton.get_instance()
 
-# Load Model from MinIO
 def load_model_from_mlflow(modelname):
     client = MlflowClient()
 
@@ -177,9 +130,7 @@ def load_model_from_mlflow(modelname):
 
     return model, metadata
 
-# Predict New Data
 def predict_new_data(new_data_df):
-    # new_data_df.printSchema()
     model, metadata = get_model()
     if model is None:
         model, metadata = load_model_from_mlflow(MODEL_NAME)
@@ -188,7 +139,6 @@ def predict_new_data(new_data_df):
     if model is None:
         return None
 
-    # feature_columns = [col for col in new_data_df.columns if col != "label"]
     feature_columns = metadata.get("feature_columns")
     if not feature_columns:
         raise ValueError("Feature columns missing in model metadata.")
@@ -211,20 +161,15 @@ STEP_SIZE = 5 # Number of records to step forward
 # Background thread to process stale records
 def cleanup_stale_records(producer):
     current_time = time.time()
-    # print(f"Checking for stale records at {current_time}...")
     expired_bookings = [bid for bid, t in booking_timestamps.items() if current_time - t > TIMEOUT_SECONDS]
     for bid in expired_bookings:
         if len(data_buffer[bid]) > 0:
             process_and_predict(bid, list(data_buffer[bid]), producer)
             del data_buffer[bid]
             del booking_timestamps[bid]
-            # print(f"Processed stale bookingID: {bid}")
 
-# Process records and make predictions
 def process_and_predict(bookingID, records, producer):
-
     spark = generateSparkSession()
-
     df = spark.createDataFrame(records)
 
     # Calculate instantaneous magnitude features
@@ -283,10 +228,7 @@ def process_and_predict(bookingID, records, producer):
     producer.send(KAFKA_TOPIC_OUTPUT, prediction_message)
     print(f"Sent prediction: {prediction_message}")
 
-# Kafka Consumer
 def consume_messages():
-    # CHECKER FOR MODEL print(f"@@@@@@@@@@@@@@@@@@@@@@@@ global_item in consume_messages: {get_model()}")
-
     spark = None
     consumer = None
     producer = None
@@ -304,7 +246,6 @@ def consume_messages():
         )
         for message in consumer:
             global shared_model
-            # CHECKER FOR MODEL print(f"@@@@@@@@@@@@@@@@@@@@@@@@ global_item in consume_messages loop: {get_model()}")
 
             data = message.value
             bookingID = data["bookingid"]
@@ -322,11 +263,9 @@ def consume_messages():
                 # Slide window by removing STEP_SIZE oldest records
                 data_buffer[bookingID] = deque(list(data_buffer[bookingID])[STEP_SIZE:])
 
-                # print(f"Processing bookingid: {bookingID}, but now records count from {WINDOW_SIZE} to {len(data_buffer[bookingID])}")
-
                 process_and_predict(bookingID, needed_records, producer)
 
-            cleanup_stale_records(producer)  # Check for stale records
+            cleanup_stale_records(producer)
 
     except KeyboardInterrupt:
         print("Stopped consuming messages")
@@ -336,6 +275,7 @@ def consume_messages():
         if producer is not None:
             producer.close()
 
+
 def refresh_model(modelname):
     global MODEL_NAME
     MODEL_NAME = modelname
@@ -343,7 +283,6 @@ def refresh_model(modelname):
     print(f"==================== refresh model: {MODEL_NAME} ====================")
     global shared_model
 
-    # CHECKER FOR MODEL print(f"@@@@@@@@@@@@@@@@@@@@@@@@ global_item in fast api call: {get_model()}")
     model, metadata = load_model_from_mlflow(MODEL_NAME)
 
     set_model(model, metadata)
@@ -371,32 +310,23 @@ async def root():
     if thread is None:
         thread = threading.Thread(target=start_kafka_consumer_task, args=(), daemon=True)
         thread.start()
-    # kafka_thread = threading.Thread(target=start_kafka_consumer_task,args=(), daemon=True)
-    # kafka_thread.start()
-    # kafka_thread.join()
     return {"message": "FastAPI server is running"}
 
 def start_fastapi():
     print(f"starting fast api server on port {FAST_API_PORT}...")
     uvicorn.run("streaming_data_handling:app", host="0.0.0.0", port=FAST_API_PORT, reload=False)
-
     print(f"starting fast api server on port {FAST_API_PORT}...COMPLETED")
-import threading
+
 
 def start_kafka_consumer_task():
     print(f"starting Kafka consumer...")
     consume_messages()
 
+
 def main():
-
     fastapi_thread = threading.Thread(target=start_fastapi,args=(), daemon=True)
-    # kafka_thread = threading.Thread(target=start_kafka_consumer_task,args=(), daemon=True)
-
     fastapi_thread.start()
-    # kafka_thread.start()
-
     fastapi_thread.join()
-    # kafka_thread.join()
 
 
 if __name__ == "__main__":

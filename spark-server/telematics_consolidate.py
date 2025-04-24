@@ -27,14 +27,11 @@ db_properties = {
 
 def removeDuplicate(df):
     a_counts = df.groupBy("bookingID").agg(F.count("*").alias("cnt"))
-
     unique_a = a_counts.filter(F.col("cnt") == 1).select("bookingID")
-
     return df.join(unique_a, on="bookingID", how="inner")
 
 
 def telematics_consolidation(command):
-
     print(f"====================START OF {command}====================")
 
     # READ LABELS FROM CSV
@@ -62,8 +59,6 @@ def telematics_consolidation(command):
         table=sql,
         properties=db_properties
     )
-    
-    # Feature engineering
     
     # Compute magnitudes
     df = postgres_df.withColumn("accel_mag", F.sqrt(F.col("acceleration_x")**2 +
@@ -115,21 +110,17 @@ def telematics_consolidation(command):
     # Combine label to aggregated_df
     aggregated_df.show()
     df_combined = aggregated_df.join(labels_df, "bookingid", "left")
-    
     df_combined = df_combined.fillna(0.0)
-
     returnString = f"Completed {command} - {df_combined.count()} record done"
-    ## read to telematics
+
     df_combined.write.jdbc(
         url=db_connection_url,
         table="telematics",
         properties=db_properties,
         mode="append")
 
-
     print(f"===================={returnString} ====================")
     spark.stop()
-
     return returnString
 
 

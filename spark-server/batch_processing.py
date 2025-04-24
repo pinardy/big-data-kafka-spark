@@ -60,7 +60,6 @@ class Item(BaseModel):
 @app.post("/filepath")
 async def predict(data: Item):
     result = minio_to_postgres(data.filepath)
-
     return {"status": "success", "message": f"{result}"}
 
 if __name__ == "__main__":

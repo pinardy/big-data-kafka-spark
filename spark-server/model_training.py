@@ -3,7 +3,6 @@ import json
 from pyspark.sql import SparkSession
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.classification import RandomForestClassifier
-from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 from pyspark.ml.evaluation import BinaryClassificationEvaluator
 
 import os, uvicorn
