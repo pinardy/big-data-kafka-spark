@@ -1,12 +1,10 @@
-import React, { Suspense, useEffect, useState, useCallback } from 'react'
+import React, { Suspense, useEffect } from 'react'
 import { HashRouter, Route, Routes } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 
 import { CSpinner, useColorModes } from '@coreui/react'
 import './scss/style.scss'
 import './scss/examples.scss'
-
-import { getTripData } from './dao/TripDao'
 
 // Containers
 const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'))
@@ -16,24 +14,10 @@ const Login = React.lazy(() => import('./views/pages/login/Login'))
 const Register = React.lazy(() => import('./views/pages/register/Register'))
 const Page404 = React.lazy(() => import('./views/pages/page404/Page404'))
 const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
-const Trip = React.lazy(() => import('./views/pages/trip/Trip'))
 
 const App = () => {
   const { isColorModeSet, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
   const storedTheme = useSelector((state) => state.theme)
-  const [trips, setTrips] = useState([])
-
-  const fetchTripData = useCallback(async () => {
-    const trips = await getTripData()
-    setTrips(trips)
-  }, [])
-
-  useEffect(() => {
-    fetchTripData()
-    // TODO: use trips to display relevant charts & visualisations
-  }, [fetchTripData])
-
-  console.log(trips)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.href.split('?')[1])

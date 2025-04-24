@@ -36,10 +36,9 @@ const Dashboard = () => {
   useEffect(() => {
     fetchTripData()
     setLoading(false)
-    // TODO: use trips to display relevant charts & visualisations
   }, [fetchTripData])
 
-  const handleTripLable = () => {
+  const handleTripLabel = () => {
     const safeTrips = data.filter((trip) => trip.label == 0)
     const dangerousTrips = data.filter((trip) => trip.label == 1)
     setTotalSafe(safeTrips.length)
@@ -73,7 +72,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     // Calculate total safe and dangerous trips
-    handleTripLable()
+    handleTripLabel()
     handleTripSpeed()
     handleTripSecond()
   }, [data])
@@ -88,18 +87,21 @@ const Dashboard = () => {
         </div>
       ) : (
         <CCard>
-          <div className="d-flex justify-content-between align-items-center">
-            <span>🚗 Trip Sensor Summary</span>
-            <input
-              type="text"
-              className="form-control w-25"
-              placeholder="Search by Booking ID"
-              onChange={(e) => {
-                const searchValue = e.target.value.toLowerCase()
-                setTripData(data.find((trip) => trip.bookingid == searchValue))
-              }}
-            />
-          </div>
+          <CCardBody>
+            <div className="d-flex align-items-center mb-4">
+              <span>🚗 Trip Sensor Summary</span>
+              <input
+                type="text"
+                style={{ marginLeft: '20px' }}
+                className="form-control w-25"
+                placeholder="Search by Booking ID"
+                onChange={(e) => {
+                  const searchValue = e.target.value.toLowerCase()
+                  setTripData(data.find((trip) => trip.bookingid == searchValue))
+                }}
+              />
+            </div>
+          </CCardBody>
 
           {tripData && (
             <CCardBody>
@@ -138,14 +140,14 @@ const Dashboard = () => {
             <CCol xs={12}></CCol>
             <CCol xs={6}>
               <CCard className="mb-4">
-                <CCardHeader>Bar Chart</CCardHeader>
+                <CCardHeader>Trip Speed</CCardHeader>
                 <CCardBody>
                   <CChartBar
                     data={{
                       labels: ['0-5', '5-10', '10-15', '15-20', '20-25'],
                       datasets: [
                         {
-                          label: 'Count of drivers in speed range',
+                          label: 'Count of drivers in speed range (m/s)',
                           backgroundColor: '#42A5F5',
                           data: totalTripSpeed,
                         },
@@ -158,7 +160,7 @@ const Dashboard = () => {
 
             <CCol xs={6}>
               <CCard className="mb-4">
-                <CCardHeader>Bar Chart</CCardHeader>
+                <CCardHeader>Trip Speed (Standard Deviation)</CCardHeader>
                 <CCardBody>
                   <CChartBar
                     data={{
@@ -209,7 +211,7 @@ const Dashboard = () => {
 
             <CCol xs={6}>
               <CCard className="mb-4">
-                <CCardHeader>Doughnut Chart</CCardHeader>
+                <CCardHeader>Trip Duration</CCardHeader>
                 <CCardBody>
                   <CChartDoughnut
                     data={{
@@ -232,7 +234,7 @@ const Dashboard = () => {
 
             <CCol xs={6}>
               <CCard className="mb-4">
-                <CCardHeader>Pie Chart</CCardHeader>
+                <CCardHeader>Trip Safety</CCardHeader>
                 <CCardBody>
                   <CChartPie
                     data={{
