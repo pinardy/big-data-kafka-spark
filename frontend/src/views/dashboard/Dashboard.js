@@ -142,22 +142,41 @@ const Dashboard = () => {
                 <CCardBody>
                   <CChartBar
                     data={{
-                      labels: ['Safe', 'Dangerous'],
+                      labels: ['0-5', '5-10', '10-15', '15-20', '20-25'],
                       datasets: [
                         {
-                          label: 'Trip Label',
-                          backgroundColor: '#f87979',
-                          data: [totalSafe, totalDangerous],
+                          label: 'Count of drivers in speed range',
+                          backgroundColor: '#42A5F5',
+                          data: totalTripSpeed,
                         },
                       ],
                     }}
-                    labels="months"
                   />
                 </CCardBody>
               </CCard>
             </CCol>
 
             <CCol xs={6}>
+              <CCard className="mb-4">
+                <CCardHeader>Bar Chart</CCardHeader>
+                <CCardBody>
+                  <CChartBar
+                    data={{
+                      labels: ['0-5', '5-10', '10-15', '15-20', '20-25'],
+                      datasets: [
+                        {
+                          label: 'Count of drivers in speed standard deviation range',
+                          backgroundColor: '#00D8FF',
+                          data: totalTripSpeedStd,
+                        },
+                      ],
+                    }}
+                  />
+                </CCardBody>
+              </CCard>
+            </CCol>
+
+            {/* <CCol xs={6}>
               <CCard className="mb-4">
                 <CCardHeader>Line Chart</CCardHeader>
                 <CCardBody>
@@ -186,7 +205,7 @@ const Dashboard = () => {
                   />
                 </CCardBody>
               </CCard>
-            </CCol>
+            </CCol> */}
 
             <CCol xs={6}>
               <CCard className="mb-4">
@@ -201,7 +220,7 @@ const Dashboard = () => {
                       ],
                       datasets: [
                         {
-                          backgroundColor: ['#41B883', '#E46651', '#00D8FF', '#DD1B16'],
+                          backgroundColor: ['#41B883', '#00D8FF', '#E46651'],
                           data: totalTripSecond,
                         },
                       ],
@@ -217,12 +236,12 @@ const Dashboard = () => {
                 <CCardBody>
                   <CChartPie
                     data={{
-                      labels: ['Red', 'Green', 'Yellow'],
+                      labels: ['Safe', 'Dangerous'],
                       datasets: [
                         {
-                          data: [300, 50, 100],
-                          backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
-                          hoverBackgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
+                          data: [totalSafe, totalDangerous],
+                          backgroundColor: ['#36A2EB', '#FF6384'],
+                          hoverBackgroundColor: ['#36A2EB', '#FF6384'],
                         },
                       ],
                     }}
