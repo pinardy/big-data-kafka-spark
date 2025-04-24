@@ -178,37 +178,6 @@ const Dashboard = () => {
               </CCard>
             </CCol>
 
-            {/* <CCol xs={6}>
-              <CCard className="mb-4">
-                <CCardHeader>Line Chart</CCardHeader>
-                <CCardBody>
-                  <CChartLine
-                    data={{
-                      labels: ['5', '10', '15', '20', '25'],
-                      datasets: [
-                        {
-                          label: 'Average Speed',
-                          backgroundColor: 'rgba(220, 220, 220, 0.2)',
-                          borderColor: 'rgba(220, 220, 220, 1)',
-                          pointBackgroundColor: 'rgba(220, 220, 220, 1)',
-                          pointBorderColor: '#fff',
-                          data: totalTripSpeed,
-                        },
-                        {
-                          label: 'Standerd Deviation Speed',
-                          backgroundColor: 'rgba(151, 187, 205, 0.2)',
-                          borderColor: 'rgba(151, 187, 205, 1)',
-                          pointBackgroundColor: 'rgba(151, 187, 205, 1)',
-                          pointBorderColor: '#fff',
-                          data: totalTripSpeedStd,
-                        },
-                      ],
-                    }}
-                  />
-                </CCardBody>
-              </CCard>
-            </CCol> */}
-
             <CCol xs={6}>
               <CCard className="mb-4">
                 <CCardHeader>Trip Duration</CCardHeader>

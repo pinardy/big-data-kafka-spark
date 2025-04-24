@@ -22,7 +22,7 @@ const Trip = () => {
     if (lastMessage !== null) {
       try {
         const parsed = JSON.parse(lastMessage.data)
-        console.log('Parsed data:', parsed)
+        console.log('Streamed data:', parsed)
 
         if (parsed.bookingid == 1) {
           setLatestData((prev) => ({
