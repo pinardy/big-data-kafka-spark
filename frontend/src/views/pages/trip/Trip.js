@@ -24,13 +24,15 @@ const Trip = () => {
         const parsed = JSON.parse(lastMessage.data)
         console.log('Parsed data:', parsed)
 
-        setLatestData((prev) => ({
-          ...prev,
-          bookingid: parsed.bookingid || prev.bookingid,
-          speed: parsed.speed || prev.speed,
-          time: parsed.time || prev.time,
-          label: parsed.label !== undefined ? parsed.label : prev.label,
-        }))
+        if (parsed.bookingid == 1) {
+          setLatestData((prev) => ({
+            ...prev,
+            bookingid: parsed.bookingid || prev.bookingid,
+            speed: parsed.speed || prev.speed,
+            time: parsed.time || prev.time,
+            label: parsed.label !== undefined ? parsed.label : prev.label,
+          }))
+        }
       } catch (err) {
         console.error('Error parsing websocket data:', err)
       }
