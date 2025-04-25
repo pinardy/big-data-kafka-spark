@@ -9,10 +9,12 @@
 🗂️── backend                         FastAPI server to serve data to frontend
 🗂️── consumer                        Consumer application code
 🗂️── data                            Store data to be used for application (Would be made avaiable upon startup of MinIO)
+🗂️── feature_engineering_exp         Jupyter notebook experiments for feature engineering
 🗂️── frontend                        Frontend for visualizing insights on telematics data and ride safety
 🗂️── producer                        Producer application code
 🗂️── spark-server                    Spark server to run Spark jobs
 ```
+
 ## Getting Started
 
 ### Docker
@@ -51,6 +53,8 @@ docker-compose -f docker-compose-kafka.yml -f docker-compose-storage.yml -f dock
 
 ### Python Virtual Environment
 
+This is only needed if you are developing the python scripts locally. This is not required for running the docker-compose setup.
+
 1) Create your own virtual environment:
 ```sh
 python3 -m venv myenv
@@ -79,6 +83,8 @@ pip install -r requirements.txt
 | Producer                                     | Sample Service to simulate live data flowing in                | http://localhost:8001 | Called when in need to simulate live data                         |  
 | **PySpark**-<br/>Batch Ingestion of Raw Data | Service to carry out ingestion of raw data from files in minio | http://localhost:8002 | Called when in need to ingest raw files into the system           |  
 | **PySpark**-<br/>Telematics consolidation    | Service to carry out telematics consolidation of rides         | http://localhost:8003 | Called periodically to consolidate ride information captured      |  
+| MLFlow       | Experiment tracking         | http://localhost:5001 | Trained models can be seen on MLFlow dashboard      |  
+
 
 ## Kafka Topics
 
