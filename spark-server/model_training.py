@@ -1,11 +1,10 @@
-import json
+import json, os, uvicorn
 
 from pyspark.sql import SparkSession
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.classification import RandomForestClassifier
 from pyspark.ml.evaluation import BinaryClassificationEvaluator
 
-import os, uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 

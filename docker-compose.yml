@@ -22,7 +22,6 @@ services:
     environment:
       KAFKA_BROKER: kafka:9092
       KAFKA_INGESTION_TOPIC: streaming
-      KAFKA_LIVE_DATA_TOPIC: live
     ports:
       - "8001:8000"
 

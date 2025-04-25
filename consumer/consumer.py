@@ -5,9 +5,6 @@ from postgres_util import get_connection, ingest_raw_data
 KAFKA_BROKER = os.environ["KAFKA_BROKER"]
 KAFKA_TOPIC = os.environ["KAFKA_INGESTION_TOPIC"]
 
-# For running script locally
-# KAFKA_BROKER = "localhost:9092"
-# KAFKA_TOPIC = "streaming"
 
 def create_consumer(broker, topic):
     try:

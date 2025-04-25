@@ -90,7 +90,6 @@ pip install -r requirements.txt
 
 | Topic name | Description                                                                                                | 
 |------------|------------------------------------------------------------------------------------------------------------|
-| live       | live data used for frontend display                                                                        |
 | streaming  | live data received from source, modules should receive and process this data for prediction and/or storage | 
 | prediction | prediction results from ML models                                                                          | 
 
