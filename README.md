@@ -1,5 +1,9 @@
 # Big Data Engineering Practice Module
 
+## Architecture
+
+![Big Data Architecture](big-data-architecture.png)
+
 ## Folder Structure
 
 ```
