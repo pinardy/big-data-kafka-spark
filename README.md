@@ -1,5 +1,22 @@
 # Big Data Engineering Practice Module
 
+## Table of Contents
+1. [Architecture](#architecture)
+2. [Folder Structure](#folder-structure)
+3. [Getting Started](#getting-started)
+   - [Docker](#docker)
+   - [Running each service](#running-each-service)
+     - [Batch Processing (Ingestion)](#1-batch-processing-ingestion)
+     - [Batch Processing (Data Consolidation)](#2-batch-processing-data-consolidation)
+     - [Analytics Processing (Model Training)](#3-analytics-processing-model-training)
+     - [Model Updating](#4-model-updating)
+     - [Stream Processing (Ingestion & Prediction)](#5-stream-processing-ingestion--prediction)
+     - [Visualisation](#6-visualisation)
+   - [Python Virtual Environment](#python-virtual-environment)
+4. [Services](#services)
+5. [Kafka Topics](#kafka-topics)
+6. [Data](#data)              
+
 ## Architecture
 
 ![Big Data Architecture](big-data-architecture.png)
@@ -54,6 +71,80 @@ Stop all services with:
 ```sh
 docker-compose -f docker-compose-kafka.yml -f docker-compose-storage.yml -f docker-compose.yml down
 ```
+
+### Running each service
+
+#### 1. Batch Processing (Ingestion)
+To run batch processing for raw data ingestion, run the following command:
+```sh
+curl -X POST http://localhost:8002/filepath -H "Content-Type: application/json" -d '{"filepath":"bigdata/XXXXXX.csv"}'
+```
+
+The system takes in a parameter of filepath, indicating the path of the files in the Minio storage server. If the file is placed in the data folder prior to the start up of the Minio server, the file can be found at the bucket `bigdata/file_name.csv` in the Minio server.
+
+#### 2. Batch Processing (Data Consolidation)
+
+After ingestion of data, we need to further prepare the data required for our analytics purposes, either on demand or running on a daily basis, this process will perform the necessary ETL on the raw data and make it ready for analytics purposes.
+
+Run the following command:
+```sh
+curl -X POST http://localhost:8003/command -H "Content-Type: application/json" -d '{"command":"new"}'
+```
+
+#### 3. Analytics Processing (Model Training)
+
+The model training will use the data from the telematics table as the training data and testing data. To trigger the model training script, users can send a request using the following command:
+
+```sh
+curl -X POST http://localhost:8004/train -H "Content-Type: application/json" \
+  -d '{
+    "modelname": "RandomForest_Telematic",
+    "feature_columns": [
+        "std_gyro_z",
+        "std_accel_y",
+        "std_accel_z",
+        "max_accel_x",
+        "avg_speed",
+        "std_accel_x",
+        "max_accel_mag",
+        "std_speed",
+        "std_gyro_mag",
+        "std_gyro_x",
+        "max_accel_z",
+        "avg_gyro_mag",
+        "std_accel_mag",
+        "second"
+    ]
+}'
+```
+
+The feature_columns should be an array of strings with feature column names. After the successful model training and logging, it will return the message with a status code `200`.
+
+#### 4. Model Updating
+
+When the server starts, it automatically loads the default model from the MLflow server and begins listening to a Kafka streaming topic. Once it receives 10 records (can be adjusted) associated with a specific bookingID, it performs a prediction using those records and publishes the result to the prediction Kafka topic.
+
+To switch to a different model for prediction, users can send a request using the following command:
+
+```sh
+curl -X POST localhost:8005/refresh_model -H "Content-Type: application/json" -d '{"modelname":"Randomforest Model"}'
+```
+
+Upon receiving this request, the system will load the specified model by name from the MLflow server and use it for subsequent predictions.
+
+#### 5. Stream Processing (Ingestion & Prediction)
+
+2. To run stream processing for raw data ingestion and for trip safety prediction, run the following command:
+```sh
+curl -X POST http://localhost:8001/stream_trips_demo
+```
+
+This will invoke the `producer` FastAPI server to start streaming live data to the `streaming` Kafka topic. A script will be invoked by the POST request to stream three drivers’ trips simultaneously. The messages in the topic can be seen in Kafdrop (a Kafka web UI) at http://localhost:9001. The messages will be consumed by the Kafka `consumer` for data ingestion.
+
+#### 6. Visualisation
+
+View the frontend at http://localhost:3000. You will be able to see a dashboard showing a summary of all completed trips, as well as a driver's page of the current trip.
+
 
 ### Python Virtual Environment
 
@@ -113,3 +204,7 @@ We have split the raw dataset into two parts:
 2) [Second part](https://www.kaggle.com/datasets/vancharmlab/grabai?select=part-00001-e6120af0-10c2-4248-97c4-81baf4304e5c-c000.csv) to be stored in a **MinIO file server** in **CSV** format
 
 Download the first part and place it in within the `producer` folder. Download the second part and place it within the `data/raw` folder (you will need to create the `raw folder).
+
+## Troubleshooting
+
+To have minimal problems when running the entire setup, increase the resource allocation (CPU and memory limit). A minimum of 12 GB of memory and CPU limit of 8 are recommended.
