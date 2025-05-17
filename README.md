@@ -16,6 +16,7 @@
 4. [Services](#services)
 5. [Kafka Topics](#kafka-topics)
 6. [Data](#data)              
+7. [Troubleshooting](#troubleshooting)              
 
 ## Architecture
 
@@ -39,7 +40,7 @@
 ## Getting Started
 
 ### Docker
-Ensure that docker is already installed. 
+Ensure that docker is already installed. Ensure you have at least 12 GB of memory and CPU limit of 8 configured on your Docker to prevent any services from crashing.
 
 You will need to build the following images in their respective folders:
 
@@ -169,8 +170,8 @@ pip install -r requirements.txt
 
 | Service Name                                 | Description                                                    | URL                   | Notes                                                             |
 |----------------------------------------------|----------------------------------------------------------------|-----------------------|-------------------------------------------------------------------|
-| Postgres                                     | Database storage for application                               | http://localhost:8080 | Login details found in docker-compose-storage.yml                 |
-| MinIO                                        | Object storage (S3 compatible)                                 | http://localhost:9090 | Webpage access to view and configurate MinIO                      |
+| Postgres                                     | Database storage for application                               | http://localhost:8080 | Login with username: `admin@admin.com` and password `admin`              |
+| MinIO                                        | Object storage (S3 compatible)                                 | http://localhost:9090 | Webpage access to view and configurate MinIO. Login with username: `miniouser` and password: `miniopassword`                      |
 | MinIO Client                                 | MinIO API calls                                                | http://localhost:9000 | No webpage access but used for application to access the content. |
 | Kafdrop                                      | Kafka UI for checking topics & messages                        | http://localhost:9001 |                                                                   |
 | Backend                                      | FastAPI backend to serve API endpoints                         | http://localhost:8000 | For displaying telematics data on frontend                        |
@@ -207,4 +208,5 @@ Download the first part and place it in within the `producer` folder. Download t
 
 ## Troubleshooting
 
-To have minimal problems when running the entire setup, increase the resource allocation (CPU and memory limit). A minimum of 12 GB of memory and CPU limit of 8 are recommended.
+- To have minimal problems when running the entire setup, increase the resource allocation (CPU and memory limit). A minimum of 12 GB of memory and CPU limit of 8 are recommended.
+- If some services are not able to run, it could be due to a conflict of ports (i.e. ports are already used by existing services on your machine). Either ensure that those ports are freed up for use (recommended), or use another port altogether by changing the external ports in the `docker-compose` files
