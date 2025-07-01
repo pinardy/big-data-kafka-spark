@@ -1,9 +1,10 @@
-# Big Data Engineering Practice Module
+# Driver Safety Detector
 
 ## Table of Contents
-1. [Architecture](#architecture)
-2. [Folder Structure](#folder-structure)
-3. [Getting Started](#getting-started)
+1. [Background](#background)
+2. [Architecture](#architecture)
+3. [Folder Structure](#folder-structure)
+4. [Getting Started](#getting-started)
    - [Docker](#docker)
    - [Running each service](#running-each-service)
      - [Batch Processing (Ingestion)](#1-batch-processing-ingestion)
@@ -13,10 +14,15 @@
      - [Stream Processing (Ingestion & Prediction)](#5-stream-processing-ingestion--prediction)
      - [Visualisation](#6-visualisation)
    - [Python Virtual Environment](#python-virtual-environment)
-4. [Services](#services)
-5. [Kafka Topics](#kafka-topics)
-6. [Data](#data)              
-7. [Troubleshooting](#troubleshooting)              
+5. [Services](#services)
+6. [Kafka Topics](#kafka-topics)
+7. [Data](#data)
+8. [Troubleshooting](#troubleshooting)
+
+## Background
+
+Ride-hailing companies collect telematics data from the private-hire cars during their trips. By building a data pipeline which utilises the huge amounts of telematics data collected by these companies, a model can be built to detect dangerous driving trips.
+
 
 ## Architecture
 
@@ -204,7 +210,7 @@ We have split the raw dataset into two parts:
 1) [First part](https://www.kaggle.com/datasets/vancharmlab/grabai?select=part-00000-e6120af0-10c2-4248-97c4-81baf4304e5c-c000.csv) to be served from a **FastAPI server** in **JSON** format
 2) [Second part](https://www.kaggle.com/datasets/vancharmlab/grabai?select=part-00001-e6120af0-10c2-4248-97c4-81baf4304e5c-c000.csv) to be stored in a **MinIO file server** in **CSV** format
 
-Download the first part and place it in within the `producer` folder. Download the second part and place it within the `data/raw` folder (you will need to create the `raw folder).
+Download the first part and place it in within the `producer` folder. Download the second part and place it within the `data/raw` folder (you will need to create the `raw` folder).
 
 ## Troubleshooting
 
